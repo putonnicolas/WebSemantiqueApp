@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche de Films DBpedia</title>
+    <style>
+        /* CSS Brut comme demandé */
+        body { font-family: sans-serif; padding: 20px; }
+        #search-input { padding: 10px; width: 300px; font-size: 16px; }
+        
+        #results { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
+            gap: 20px; 
+            margin-top: 20px; 
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        .card img { max-width: 100%; height: auto; display: block; margin-bottom: 10px; }
+        .card h3 { margin: 0 0 10px 0; font-size: 1.2em; }
+        .card .genre { font-weight: bold; color: #555; font-size: 0.9em; }
+        .card .desc { font-size: 0.8em; color: #333; }
+    </style>
+</head>
+<body>
+
+    <h1>Moteur de recherche de films (SPARQL)</h1>
+    
+    <input type="text" id="search-input" placeholder="Entrez un titre (ex: Inception)...">
+    <div id="loading" style="display:none;">Recherche en cours...</div>
+    
+    <div id="results"></div>
+
+    <script src="src/searchEngine.js"></script>
+</body>
+</html>
