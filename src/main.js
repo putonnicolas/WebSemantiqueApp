@@ -1,24 +1,53 @@
 import './style.css'
-import javascriptLogo from './javascript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.js'
+import { SparqlClient } from './SparqlClient.js'
+
+const wikidataUrl = 'https://query.wikidata.org/sparql';
+const client = new SparqlClient(wikidataUrl);
+
+const maRequete = `
+    SELECT ?film ?filmLabel ?date ?image WHERE {
+      ?film wdt:P31 wd:Q11424.         # C'est un film
+      ?film wdt:P57 wd:Q41396.         # Réalisateur : Christopher Nolan
+      OPTIONAL { ?film wdt:P577 ?date. }
+      OPTIONAL { ?film wdt:P18 ?image. }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "fr,en". }
+    }
+    LIMIT 10
+`;
+
+async function lancerRecherche() {
+    const resultsDiv = document.querySelector('#results');
+    resultsDiv.innerHTML = '<p>Recherche en cours...</p>';
+    
+    const films = await client.query(maRequete);
+    
+    if (films.length === 0) {
+        resultsDiv.innerHTML = '<p>Aucun résultat trouvé.</p>';
+        return;
+    }
+    
+    let html = '<h2>Films de Christopher Nolan</h2><div class="films-grid">';
+    films.forEach(film => {
+        html += `
+            <div class="film-card">
+                ${film.image ? `<img src="${film.image}" alt="${film.filmLabel}" />` : ''}
+                <h3>${film.filmLabel}</h3>
+                ${film.date ? `<p>Date: ${new Date(film.date).getFullYear()}</p>` : ''}
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    resultsDiv.innerHTML = html;
+}
 
 document.querySelector('#app').innerHTML = `
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
-      <img src="${javascriptLogo}" class="logo vanilla" alt="JavaScript logo" />
-    </a>
-    <h1>Hello Vite!</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite logo to learn more
-    </p>
+  <div class="container">
+    <h1>Recherche de Films - Web Sémantique</h1>
+    <button id="searchBtn">Lancer la recherche</button>
+    <div id="results"></div>
   </div>
 `
 
-setupCounter(document.querySelector('#counter'))
+// Attacher l'événement au bouton après sa création
+document.querySelector('#searchBtn').addEventListener('click', lancerRecherche);
