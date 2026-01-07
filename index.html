@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,23 +7,56 @@
     <title>websemantiqueapp.json</title>
   </head>
   <body>
-    <div id="app" style="display: flex; gap: 10px; height: 100vh;">   
-      <div id="leftPanel" style="display: flex; flex-direction: column; flex: 1; border-right: 1px solid #ccc;">
-        <div id="website" style="display: flex; align-items: center; gap: 10px;">
-          <div id="logo">
-          </a href="">
+    <div id="app" style="display: flex; gap: 10px; height: 100vh">
+      <div
+        id="leftPanel"
+        style="
+          display: flex;
+          flex-direction: column;
+          border-right: 1px solid #ccc;
+        "
+      >
+        <div
+          id="websiteInfos"
+          style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 0;
+            flex-wrap: nowrap;
+            size: 2em;
+          "
+        >
+          <div id="logo" style="display:contents;">
+            <img src="logo.png" alt="logo" style="max-height: max-content" />
           </div>
-          <div id="titre">Film2Fou</div>
+          <div
+            id="titre"
+            style="
+              font-family: 'Arial', sans-serif;
+              font-weight: bold;
+              font-size: 24px;
+            "
+          >
+            Film2Fou
+          </div>
         </div>
-        <hr style="flex: 1; border: 10px; border-bottom: 1px solid #ccc; margin: 0;" />
+
+        <hr
+          style="
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid #ccc;
+            margin: 20px 0;
+          "
+        />
         <div id="">Mes recommandations</div>
         <div id="">Films utilisés pour la recommandation</div>
-        <div id="movieList">
-          
-        </div>
+
+        <div id="movieList"></div>
       </div>
 
-      <div id="hero" style="display: flex; flex: 1;"></div>
+      <div id="hero" style="display: flex; flex: 1"></div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
