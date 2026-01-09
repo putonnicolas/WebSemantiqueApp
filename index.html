@@ -2,61 +2,56 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>websemantiqueapp.json</title>
+    <title>Film2Fou</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Reenie+Beanie&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="app" style="display: flex; gap: 10px; height: 100vh">
-      <div
-        id="leftPanel"
-        style="
-          display: flex;
-          flex-direction: column;
-          border-right: 1px solid #ccc;
-        "
-      >
-        <div
-          id="websiteInfos"
-          style="
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 0;
-            flex-wrap: nowrap;
-            size: 2em;
-          "
-        >
-          <div id="logo" style="display:contents;">
-            <img src="logo.png" alt="logo" style="max-height: max-content" />
+    <div id="app">
+      <div id="leftPanel">
+        <div id="websiteInfos">
+          <div id="logo">
+            <img src="logo.png" alt="logo" />
           </div>
-          <div
-            id="titre"
-            style="
-              font-family: 'Arial', sans-serif;
-              font-weight: bold;
-              font-size: 24px;
-            "
-          >
-            Film2Fou
-          </div>
+          <h1 id="title">Film2Fou</h1>
         </div>
 
-        <hr
-          style="
-            width: 100%;
-            border: none;
-            border-bottom: 1px solid #ccc;
-            margin: 20px 0;
-          "
-        />
-        <div id="">Mes recommandations</div>
-        <div id="">Films utilisés pour la recommandation</div>
+        <hr />
+
+        <div id="boutonsNavigation">
+          <div class="menu-item">Mes recommandations</div>
+          <div class="menu-item">Films utilisés</div>
+        </div>
+
+        <hr />
 
         <div id="movieList"></div>
       </div>
 
-      <div id="hero" style="display: flex; flex: 1"></div>
+      <div id="hero">
+        <div class="search">
+          <div class="searchBar">
+            <input
+              type="text"
+              placeholder="Rechercher un film, un acteur..."
+              id="movieSearch"
+            />
+            <button id="searchBtn">
+              <img src="loupe.svg" alt="Rechercher" />
+            </button>
+          </div>
+        </div>
+
+        <div id="results"></div>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

@@ -1,4 +1,4 @@
-import "./style.css";
+import "../style.css";
 import { SparqlClient } from "./SparqlClient.js";
 
 const wikidataUrl = "https://query.wikidata.org/sparql";
@@ -34,7 +34,7 @@ async function lancerRecherche() {
     return;
   }
 
-  let html = '<h2>Films</h2><div class="films-grid">';
+  let html = '';
   films.forEach((film) => {
     html += `
             <div class="film-card">
@@ -56,14 +56,5 @@ async function lancerRecherche() {
 
   resultsDiv.innerHTML = html;
 }
-
-document.querySelector("#hero").innerHTML = `
-  <div class="container">
-    <h1>Recherche de Films - Web Sémantique</h1>
-    <button id="searchBtn">Lancer la recherche</button>
-    <div id="results"></div>
-  </div>
-`;
-
 
 document.querySelector("#searchBtn").addEventListener("click", lancerRecherche);
