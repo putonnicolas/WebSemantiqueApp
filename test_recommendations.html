@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recommandations Précises Wikidata</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #f0f2f5;
+        color: #333;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1000px;
+        margin: auto;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+      }
+      .card:hover {
+        transform: translateY(-5px);
+      }
+      .card img {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+      }
+      .card-content {
+        padding: 15px;
+      }
+      .card-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+        font-size: 1.1rem;
+      }
+      .card-meta {
+        font-size: 0.85rem;
+        color: #666;
+      }
+      button {
+        background: #673ab7;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+      button:hover {
+        background: #512da8;
+      }
+      /* ... tes styles existants ... */
+
+      /* Style du Spinner */
+      .loader {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #673ab7;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+        display: none; /* Caché par défaut */
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-text {
+        text-align: center;
+        color: #673ab7;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Cinéma Recommandations</h1>
+      <button id="btnSearch">Générer les recommandations</button>
+
+      <div id="loaderContainer">
+        <div id="spinner" class="loader"></div>
+        <p id="loadingMsg" class="loading-text" style="display: none">
+          Analyse des données Wikidata...
+        </p>
+      </div>
+
+      <div id="results" class="grid"></div>
+    </div>
+    <script src="src/recommendations.js"></script>
+  </body>
+</html>

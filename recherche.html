@@ -1,33 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Recherche DBpedia - Tableau</title>
-</head>
-<body>
-
+  </head>
+  <body>
     <h1>Recherche DBpedia</h1>
 
-    <input type="text" id="searchInput" placeholder="Ex: Inception">
+    <input type="text" id="searchInput" placeholder="Ex: Inception" />
     <button id="searchBtn">RECHERCHER</button>
-    <span id="loadingIndicator" style="display: none; margin-left: 10px;">⏳ Recherche...</span>
+    <span id="loadingIndicator" style="display: none; margin-left: 10px"
+      >⏳ Recherche...</span
+    >
 
-    <hr>
+    <hr />
 
-    <table border="1" id="resultsTable" style="width: 100%; text-align: left; display: none;">
+    <table
+      border="1"
+      id="resultsTable"
+      style="width: 100%; text-align: left; display: none"
+    >
+      <thead>
         <thead>
-            <tr>
-                <th>Titre</th>
-                <th>Genre</th>
-                <th>Date / Année</th>
-                <th>Synopsis</th>
-            </tr>
+          <tr>
+            <th>ID Wikidata</th>
+            <th>Titre</th>
+            <th>Genre</th>
+            <th>Réalisateur</th>
+            <th>Année</th>
+          </tr>
         </thead>
-        <tbody id="resultsBody">
-            </tbody>
+      </thead>
+      <tbody id="resultsBody"></tbody>
     </table>
 
     <script src="src/searchFilms.js"></script>
-
-</body>
+  </body>
 </html>
