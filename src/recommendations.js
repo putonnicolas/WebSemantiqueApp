@@ -46,10 +46,16 @@ const WEIGHTS = {
 async function getOptimizedRecommendations() {
   const container = document.getElementById("results");
   const loadingMsg = document.getElementById("loadingMsg");
+  
+  console.log("getOptimizedRecommendations appelé");
+  console.log("Container trouvé:", !!container);
+  
   if (container) container.innerHTML = "";
   if (loadingMsg) {
     loadingMsg.style.display = "block";
     loadingMsg.innerHTML = "Recherche des acteurs et des films en cours...";
+  } else {
+    console.log("loadingMsg non trouvé");
   }
 
   const criteria = {
@@ -197,34 +203,39 @@ LIMIT 500`;
 
 function renderTable(movies) {
   const container = document.getElementById("results");
-  let html = `<table style="width:100%; border-collapse:collapse; font-family:sans-serif;">
-    <thead>
-      <tr style="background:#f4f4f4; border-bottom:2px solid #ccc;">
-        <th style="padding:10px; text-align:left;">Film</th>
-        <th style="padding:10px; text-align:center;">Score</th>
-        <th style="padding:10px; text-align:left;">Raisons</th>
-      </tr>
-    </thead>
-    <tbody>`;
-
-  movies.forEach((m) => {
-    const badges = m.recommendation.reasons
-      .map(
-        (r) =>
-          `<span style="background:#fff9c4; color:#f57f17; padding:2px 6px; border-radius:4px; font-size:0.8em; margin-right:5px; border:1px solid #fbc02d;">${r}</span>`,
-      )
-      .join("");
-
-    html += `<tr style="border-bottom:1px solid #eee;">
-      <td style="padding:10px;"><b>${m.title}</b> (${m.year})</td>
-      <td style="padding:10px; text-align:center; font-weight:bold; color:#d32f2f;">${m.recommendation.score}</td>
-      <td style="padding:10px;">${badges}</td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
+  
+  const html = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; padding: 20px;">
+      ${movies.map((m) => `
+        <div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s;">
+          ${m.image ? `<img src="${m.image}" alt="${m.title}" style="width: 100%; height: 300px; object-fit: cover;">` : `<div style="width: 100%; height: 300px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999;">Pas d'image</div>`}
+          <div style="padding: 15px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #333;">${m.title}</h3>
+            <p style="margin: 5px 0; color: #666; font-size: 14px;"><strong>Année:</strong> ${m.year}</p>
+            <p style="margin: 5px 0; color: #d32f2f; font-size: 14px;"><strong>Score:</strong> ${m.recommendation.score}</p>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+  
   container.innerHTML = html;
 }
 
 document
   .getElementById("btnSearch")
   ?.addEventListener("click", getOptimizedRecommendations);
+
+// Initialiser le chargement au démarrage de la page
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("Page chargée, affichage des résultats de test...");
+  
+  // Afficher directement les résultats de test
+  const testMovies = SELECTED_MOVIES.map(m => ({
+    ...m,
+    image: null,
+    recommendation: { score: 20, reasons: ["test"] }
+  }));
+  
+  renderTable(testMovies);
+});
