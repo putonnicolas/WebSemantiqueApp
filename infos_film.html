@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Film2Fou</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Reenie+Beanie&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="style_infos.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="leftPanel">
+        <div id="websiteInfos">
+          <div id="logo">
+            <img src="logo.png" alt="logo" />
+          </div>
+          <h1 id="title">Film2Fou</h1>
+        </div>
+
+        <hr />
+
+        <div id="boutonsNavigation">
+          <div class="menu-item">Mes recommandations</div>
+          <div class="menu-item" id="pageActuel">Films utilisés</div>
+        </div>
+
+        <hr />
+
+        <div id="movieList">
+          <div class="movie-placeholder"></div>
+          <div class="movie-placeholder"></div>
+          <div class="movie-placeholder"></div>
+          <div class="movie-placeholder"></div>
+          <div class="movie-placeholder"></div>
+        </div>
+      </div>
+
+      <div id="hero">
+        <div class="search">
+          <div class="searchBar">
+            <input
+              type="text"
+              placeholder="Rechercher un film, un acteur..."
+              id="movieSearch"
+            />
+            <button id="searchBtn">
+              <img src="loupe.svg" alt="Rechercher" />
+            </button>
+          </div>
+        </div>
+        <div class="container">
+            <div class="image_placeholder">
+                <img src="public/Affiche_Film.png" alt="Affiche du film" />
+            </div>
+            <div class="text_placeholder">
+                <div id="titleFilm">Pilou</div>
+                <div id="yearFilm">2023</div>
+                <div id="genreFilm">
+            <p><strong>Genre :</strong> <span class="genre-bubble">Action</span> <span class="genre-bubble">Gangster</span></p>
+        </div>
+        <div id="descriptionFilm">
+            <p>Voici la description du film Pilou, le film de Gangster de merde qui chie sur les murs</p>
+        </div>
+        <div id="explicationIA">Acteur en commun</div>
+      </div>
+    </div>
+    <script type="module" src="/src/infos_film.js"></script>
+  </body>
+</html>
