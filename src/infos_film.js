@@ -12,7 +12,7 @@ let movieSelected = JSON.parse(sessionStorage.getItem('moviesClick')) || [];
     }
 
 // Fonction pour afficher les détails dans les divs
-function displayFilmDetails(movieSelected) {
+async function displayFilmDetails(movieSelected) {
     const imageDiv = document.getElementById('imageFilm');
     const titleDiv = document.getElementById('titleFilm');
     const genreDiv = document.getElementById('genreFilm');
