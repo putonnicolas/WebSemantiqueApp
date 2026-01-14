@@ -5,7 +5,7 @@ const wikidataUrl = "https://query.wikidata.org/sparql"
 const client = new SparqlClient(wikidataUrl)
 
 let currentSearchResults = []
-let savedMovies = JSON.parse(sessionStorage.getItem('mesRecommandations')) || []
+let savedMovies = JSON.parse(sessionStorage.getItem('moviesUsed')) || []
 
 document.addEventListener("DOMContentLoaded", () => {
   updateSavedListUI()
@@ -61,7 +61,7 @@ async function lancerRecherche() {
 
     currentSearchResults = rawData.map(data => ({
       title: data.itemLabel,
-      image: data.image || "https://via.placeholder.com/300x450?text=Affiche+Manquante",
+      image: data.image || null,
       year: data.date ? new Date(data.date).getFullYear() : "N/C",
       director: data.directorLabel || "Inconnu",
       genre: data.genreLabel || "Non classé",
@@ -82,7 +82,7 @@ async function lancerRecherche() {
             </div>
             <button 
               class="add-btn" 
-              onclick="ajouterAuxRecommandations(${index})"
+              onclick="ajouterAuxMoviesUsed(${index})"
             >
               <img class="add-logo" src="add.svg" alt="Ajouter"/>
             </button>
@@ -99,14 +99,14 @@ async function lancerRecherche() {
   }
 }
 
-window.ajouterAuxRecommandations = function(index) {
+window.ajouterAuxMoviesUsed = function(index) {
   if (savedMovies.length >= 5) {
     alert("Ta liste est complète ! Enlève un film pour en ajouter un nouveau.")
     return
   }
 
   const movieToAdd = currentSearchResults[index]
-    
+
   const existeDeja = savedMovies.some(m => m.title === movieToAdd.title && m.year === movieToAdd.year)
   if (existeDeja) {
     alert("Ce film est déjà dans ta liste !")
@@ -114,13 +114,13 @@ window.ajouterAuxRecommandations = function(index) {
   }
 
   savedMovies.push(movieToAdd)
-  sessionStorage.setItem('mesRecommandations', JSON.stringify(savedMovies))
+  sessionStorage.setItem('moviesUsed', JSON.stringify(savedMovies))
   updateSavedListUI()
 }
 
 window.supprimerFilm = function(index) {
   savedMovies.splice(index, 1)
-  sessionStorage.setItem('mesRecommandations', JSON.stringify(savedMovies))
+  sessionStorage.setItem('moviesUsed', JSON.stringify(savedMovies))
   updateSavedListUI()
 }
 
@@ -141,7 +141,6 @@ function updateSavedListUI() {
           <img src="${film.image}" alt="${film.title}">
           <div class="mini-card-info">
             <span class="mini-title">${film.title}</span>
-            <span class="mini-director">${film.director}</span>
             <button class="remove-btn" onclick="supprimerFilm(${index})">×</button>
           </div>
         </div>
