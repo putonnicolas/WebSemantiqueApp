@@ -4,15 +4,17 @@ const wikidataUrl = "https://query.wikidata.org/sparql";
 const client = new SparqlClient(wikidataUrl);
 
 export async function searchMoviesOnWikidata(term) {
-const query = `
+  // 1. AJOUT DE ?actorLabel DANS LE SELECT
+  const query = `
     SELECT DISTINCT ?item ?itemLabel ?date ?image 
                     ?director ?directorLabel 
                     ?genre ?genreLabel 
                     ?screenwriter 
                     ?country 
-                    ?language WHERE {
+                    ?language 
+                    ?actor ?actorLabel WHERE {    
 
-      # 1. MOTEUR DE RECHERCHE (Pertinence)
+      # MOTEUR DE RECHERCHE
       SERVICE wikibase:mwapi {
           bd:serviceParam wikibase:api "EntitySearch" .
           bd:serviceParam wikibase:endpoint "www.wikidata.org" .
@@ -21,10 +23,8 @@ const query = `
           ?item wikibase:apiOutputItem mwapi:item .
       }
 
-      # 2. FILTRE : On ne garde que les films (Q11424)
       ?item wdt:P31 wd:Q11424 .
       
-      # 3. RÉCUPÉRATION DES DONNÉES (OPTIONAL)
       OPTIONAL { ?item wdt:P577 ?date . }
       OPTIONAL { ?item wdt:P18 ?image . }
       OPTIONAL { ?item wdt:P57 ?director . }
@@ -33,7 +33,10 @@ const query = `
       OPTIONAL { ?item wdt:P495 ?country . }
       OPTIONAL { ?item wdt:P364 ?language . }
 
-      # 4. LIBELLÉS AUTOMATIQUES
+      # ACTEURS (P161)
+      OPTIONAL { ?item wdt:P161 ?actor . }
+
+      # Le service remplit automatiquement ?actorLabel si ?actor existe
       SERVICE wikibase:label { bd:serviceParam wikibase:language "fr,en". }
     }
   `;
@@ -45,29 +48,28 @@ const query = `
     return [];
   }
   
-  // 2. TRAITEMENT DES DONNÉES
   const moviesMap = processData(bindings);
 
-  // 3. FORMATAGE FINAL SELON TA DEMANDE
   const moviesLibrary = Array.from(moviesMap.values()).map((m) => ({
     id: m.id,
     title: m.title,
     year: m.year,
     image: m.image,
     
-    // Réalisateur
     directorId: m.directorId,
     directorName: m.directorName,
     
-    // NOUVEAUX CHAMPS
-    // On prend le premier trouvé (Wikidata peut en renvoyer plusieurs)
     screenwriterId: m.screenwriterIds.values().next().value || null,
     countryId: m.countryIds.values().next().value || null,
     languageId: m.languageIds.values().next().value || null,
 
-    // Genres (Tableau d'IDs)
     genresIds: Array.from(m.genresIds),
     genresLabels: Array.from(m.genresLabels),
+
+    cast: Array.from(m.actorsMap.entries()).map(([id, name]) => ({
+        id: id,
+        name: name
+    }))
   }));
   console.log(moviesLibrary);
   
@@ -83,45 +85,38 @@ function processData(bindings) {
     if (!moviesMap.has(qid)) {
       moviesMap.set(qid, {
         id: qid,
-        title: bind.itemLabel.value,
+        title: bind.itemLabel ? bind.itemLabel.value : "Titre Inconnu",
         image: bind.image ? bind.image.value : null,
         year: bind.date ? parseInt(bind.date.value.substring(0, 4)) : "N/C",
         
         directorId: bind.director ? bind.director.value.split("/").pop() : null,
         directorName: bind.directorLabel ? bind.directorLabel.value : "Inconnu",
         
-        // Initialisation des Sets pour gérer les doublons de lignes
         genresIds: new Set(),
         genresLabels: new Set(),
         screenwriterIds: new Set(),
         countryIds: new Set(),
-        languageIds: new Set()
+        languageIds: new Set(),
+        
+        actorsMap: new Map() 
       });
     }
 
     const film = moviesMap.get(qid);
 
-    // --- Remplissage des données ---
-
-    // Genre
     if (bind.genre) {
       film.genresIds.add(bind.genre.value.split("/").pop());
       if (bind.genreLabel) film.genresLabels.add(bind.genreLabel.value);
     }
+    if (bind.screenwriter) film.screenwriterIds.add(bind.screenwriter.value.split("/").pop());
+    if (bind.country) film.countryIds.add(bind.country.value.split("/").pop());
+    if (bind.language) film.languageIds.add(bind.language.value.split("/").pop());
 
-    // Scénariste
-    if (bind.screenwriter) {
-      film.screenwriterIds.add(bind.screenwriter.value.split("/").pop());
-    }
-
-    // Pays
-    if (bind.country) {
-      film.countryIds.add(bind.country.value.split("/").pop());
-    }
-
-    // Langue
-    if (bind.language) {
-      film.languageIds.add(bind.language.value.split("/").pop());
+    if (bind.actor) {
+        const actorId = bind.actor.value.split("/").pop();
+        const actorName = bind.actorLabel ? bind.actorLabel.value : "Nom Inconnu";
+        
+        film.actorsMap.set(actorId, actorName);
     }
   });
 
