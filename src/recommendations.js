@@ -1,39 +1,3 @@
-const SELECTED_MOVIES = [
-  {
-    id: "Q25150",
-    title: "Inception",
-    year: 2010,
-    directorId: "Q212730",
-    screenwriterId: "Q212730",
-    genres: ["Q187439", "Q170584"],
-    cast: ["Q38111", "Q188573"],
-    countryId: "Q30",
-    languageId: "Q1860",
-  },
-  {
-    id: "Q104123",
-    title: "Pulp Fiction",
-    year: 1994,
-    directorId: "Q3772",
-    screenwriterId: "Q3772",
-    genres: ["Q124422", "Q130232"],
-    cast: ["Q125217", "Q172678"],
-    countryId: "Q30",
-    languageId: "Q1860",
-  },
-  {
-    id: "Q13551501",
-    title: "Parasite",
-    year: 2019,
-    directorId: "Q499876",
-    screenwriterId: "Q499876",
-    genres: ["Q130232", "Q170584", "Q132821"],
-    cast: ["Q495284", "Q484822"],
-    countryId: "Q884",
-    languageId: "Q9176",
-  },
-];
-
 const WEIGHTS = {
   GENRE: 10,
   DIRECTOR: 15,
@@ -74,11 +38,11 @@ async function getOptimizedRecommendations() {
 
   const criteria = {
     directors: new Set(SELECTED_MOVIES.map((m) => m.directorId)),
-    screenwriters: new Set(SELECTED_MOVIES.map((m) => m.screenwriterId)),
-    genres: new Set(SELECTED_MOVIES.flatMap((m) => m.genres)),
-    actors: new Set(SELECTED_MOVIES.flatMap((m) => m.cast)), // Liste des acteurs cibles
-    countries: new Set(SELECTED_MOVIES.map((m) => m.countryId)),
-    languages: new Set(SELECTED_MOVIES.map((m) => m.languageId)),
+    screenwriters: new Set(SELECTED_MOVIES.flatMap((m) => m.screenwriterIds || [])),
+    genres: new Set(SELECTED_MOVIES.flatMap((m) => m.genres || [])),
+    actors: new Set(SELECTED_MOVIES.flatMap((m) => m.cast || [])),
+    countries: new Set(SELECTED_MOVIES.flatMap((m) => m.countryIds || [])),
+    languages: new Set(SELECTED_MOVIES.flatMap((m) => m.languageIds || [])),
     excluded: new Set(SELECTED_MOVIES.map((m) => m.id)),
   };
 
@@ -270,17 +234,3 @@ document.addEventListener("DOMContentLoaded", () => {
 document
   .getElementById("btnSearch")
   ?.addEventListener("click", getOptimizedRecommendations);
-
-// Initialiser le chargement au démarrage de la page
-window.addEventListener("DOMContentLoaded", () => {
-  console.log("Page chargée, affichage des résultats de test...");
-  
-  // Afficher directement les résultats de test
-  const testMovies = SELECTED_MOVIES.map(m => ({
-    ...m,
-    image: null,
-    recommendation: { score: 20, reasons: ["test"] }
-  }));
-  
-  renderTable(testMovies);
-});

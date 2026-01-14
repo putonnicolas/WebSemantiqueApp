@@ -57,19 +57,16 @@ export async function searchMoviesOnWikidata(term) {
     image: m.image,
     
     directorId: m.directorId,
-    directorName: m.directorName,
+    director: m.directorName,
     
-    screenwriterId: m.screenwriterIds.values().next().value || null,
-    countryId: m.countryIds.values().next().value || null,
-    languageId: m.languageIds.values().next().value || null,
+    screenwriterIds: Array.from(m.screenwriterIds),
+    countryIds: Array.from(m.countryIds),
+    languageIds: Array.from(m.languageIds),
 
-    genresIds: Array.from(m.genresIds),
-    genresLabels: Array.from(m.genresLabels),
+    genres: Array.from(m.genresIds),
+    genre: Array.from(m.genresLabels).join(", "),
 
-    cast: Array.from(m.actorsMap.entries()).map(([id, name]) => ({
-        id: id,
-        name: name
-    }))
+    cast: Array.from(m.actorsMap.keys())
   }));
   console.log(moviesLibrary);
   

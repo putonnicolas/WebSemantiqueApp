@@ -40,9 +40,9 @@ let html = ""
           <div class="film-info-overlay">
             <div class="info-text">
               <h3>${film.title}</h3>
-              <p>${film.directorName} - ${film.year}</p>
+              <p>${film.director} - ${film.year}</p>
               
-              <small>${film.genresLabels[0]}</small> 
+              <small>${film.genre}</small> 
             </div>
             <button class="add-btn" onclick="ajouterAuxMoviesUsed(${index})">
               <img class="add-logo" src="add.svg" alt="Ajouter"/>
