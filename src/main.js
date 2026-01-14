@@ -1,129 +1,151 @@
-import "../style.css";
-import { SparqlClient } from "./SparqlClient.js";
+import "../style.css"
+import { SparqlClient } from "./SparqlClient.js"
 
-const wikidataUrl = "https://query.wikidata.org/sparql";
-const client = new SparqlClient(wikidataUrl);
+const wikidataUrl = "https://query.wikidata.org/sparql"
+const client = new SparqlClient(wikidataUrl)
 
-const maRequete = `
-PREFIX wd: <http://www.wikidata.org/entity/>
-PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-PREFIX wikibase: <http://wikiba.se/ontology#>
-PREFIX bd: <http://www.bigdata.com/rdf#>
+let currentSearchResults = []
+let savedMovies = JSON.parse(sessionStorage.getItem('mesRecommandations')) || []
 
-SELECT ?film ?filmLabel ?date ?image WHERE {
-  ?film wdt:P31 wd:Q11424.
-  OPTIONAL { ?film wdt:P577 ?date. }
-  OPTIONAL { ?film wdt:P18 ?image. }
-  SERVICE wikibase:label {
-    bd:serviceParam wikibase:language "fr,en".
-  }
-}
-LIMIT 100
-`;
+document.addEventListener("DOMContentLoaded", () => {
+  updateSavedListUI()
+  
+  document.querySelector("#searchBtn").addEventListener("click", lancerRecherche)
+  document.querySelector("#movieSearch").addEventListener("keypress", (e) => {
+    if (e.key === 'Enter') lancerRecherche()
+  })
+})
 
 async function lancerRecherche() {
-  const resultsDiv = document.querySelector("#results");
-  resultsDiv.innerHTML = "<p>Recherche en cours...</p>";
+  const searchInput = document.querySelector("#movieSearch")
+  const resultsDiv = document.querySelector("#results")
+  const term = searchInput.value.trim()
+
+  if (!term) return
+
+  resultsDiv.innerHTML = '<div class="loader">Recherche en cours...</div>'
+
+  const maRequete = `
+    SELECT DISTINCT ?item ?itemLabel ?date ?image ?directorLabel ?genreLabel WHERE {
+      ?item wdt:P31 wd:Q11424 .
+      ?item rdfs:label ?itemLabel .
+      FILTER (lang(?itemLabel) = "fr")
+      FILTER (regex(?itemLabel, "${term}", "i"))
+      
+      OPTIONAL { ?item wdt:P577 ?date . }
+      OPTIONAL { ?item wdt:P18 ?image . }
+      
+      OPTIONAL { 
+        ?item wdt:P57 ?director . 
+        ?director rdfs:label ?directorLabel . 
+        FILTER(lang(?directorLabel) = "fr") 
+      }
+      OPTIONAL { 
+        ?item wdt:P136 ?genre . 
+        ?genre rdfs:label ?genreLabel . 
+        FILTER(lang(?genreLabel) = "fr") 
+      }
+
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "fr". }
+    }
+    LIMIT 20
+  `
 
   try {
-    const films = await client.query(maRequete);
+    const rawData = await client.query(maRequete)
 
-    if (!films || films.length === 0) {
-      resultsDiv.innerHTML = "<p>Aucun résultat trouvé.</p>";
-      return;
+    if (!rawData || rawData.length === 0) {
+      resultsDiv.innerHTML = "<p>Aucun résultat trouvé pour cette recherche.</p>"
+      return
     }
 
-    let html = "";
-    films.forEach((film) => {
-      const annee = film.date ? new Date(film.date).getFullYear() : "N/C";
-      const imageSrc = film.image
-        ? film.image
-        : "https://via.placeholder.com/300x450?text=Pas+d'image";
+    currentSearchResults = rawData.map(data => ({
+      title: data.itemLabel,
+      image: data.image || "https://via.placeholder.com/300x450?text=Affiche+Manquante",
+      year: data.date ? new Date(data.date).getFullYear() : "N/C",
+      director: data.directorLabel || "Inconnu",
+      genre: data.genreLabel || "Non classé",
+      id: data.item.value
+    }))
 
+    let html = ""
+    
+    currentSearchResults.forEach((film, index) => {
       html += `
         <div class="film-card">
-          <img src="${imageSrc}" alt="${film.filmLabel}" />
+          <img src="${film.image}" alt="${film.title}" />
           <div class="film-info-overlay">
             <div class="info-text">
-              <h3>${film.filmLabel}</h3>
-              <span>${annee}</span>
+              <h3>${film.title}</h3>
+              <p>${film.director} - ${film.year}</p>
+              <small>${film.genre}</small>
             </div>
-<button 
-  class="add-btn" 
-  onclick="ajouterAuxRecommandations('${film.filmLabel.replace(
-    /'/g,
-    "\\'"
-  )}', '${film.image || ""}')"
->
-  <img class="add-logo" src="add.svg" alt="Ajouter"/>
-</button>          </div>
+            <button 
+              class="add-btn" 
+              onclick="ajouterAuxRecommandations(${index})"
+            >
+              <img class="add-logo" src="add.svg" alt="Ajouter"/>
+            </button>
+          </div>
         </div>
-      `;
-    });
+      `
+    })
 
-    resultsDiv.innerHTML = html;
+    resultsDiv.innerHTML = html
+
   } catch (error) {
-    resultsDiv.innerHTML = "<p>Erreur lors de la récupération des données.</p>";
-    console.error(error);
+    resultsDiv.innerHTML = "<p>Erreur lors de la récupération des données.</p>"
+    console.error(error)
   }
 }
 
-document.querySelector("#searchBtn").addEventListener("click", lancerRecherche);
-
-
-window.ajouterAuxRecommandations = function(titre, image) {
-  const placeholders = document.querySelectorAll('.movie-placeholder');
-  
-  const premierLibre = Array.from(placeholders).find(p => !p.classList.contains('filled'));
-
-  if (!premierLibre) {
-    alert("Ta liste est complète ! Enlève un film pour en ajouter un nouveau.");
-    return;
+window.ajouterAuxRecommandations = function(index) {
+  if (savedMovies.length >= 5) {
+    alert("Ta liste est complète ! Enlève un film pour en ajouter un nouveau.")
+    return
   }
 
-  premierLibre.classList.add('filled');
-  premierLibre.innerHTML = `
-    <div class="mini-card">
-      ${image ? `<img src="${image}" alt="${titre}">` : ''}
-      <div class="mini-card-info">
-        <span class="mini-title">${titre}</span>
-        <button class="remove-btn" onclick="supprimerFilm(this)">×</button>
-      </div>
-    </div>
-  `;
-};
+  const movieToAdd = currentSearchResults[index]
+    
+  const existeDeja = savedMovies.some(m => m.title === movieToAdd.title && m.year === movieToAdd.year)
+  if (existeDeja) {
+    alert("Ce film est déjà dans ta liste !")
+    return
+  }
 
+  savedMovies.push(movieToAdd)
+  sessionStorage.setItem('mesRecommandations', JSON.stringify(savedMovies))
+  updateSavedListUI()
+}
 
-window.supprimerFilm = function(btn) {
-  const allFilled = document.querySelectorAll('.movie-placeholder.filled');
-  const filmsRestants = [];
+window.supprimerFilm = function(index) {
+  savedMovies.splice(index, 1)
+  sessionStorage.setItem('mesRecommandations', JSON.stringify(savedMovies))
+  updateSavedListUI()
+}
 
-  allFilled.forEach(p => {
-    const card = p.querySelector('.mini-card');
-    if (!p.contains(btn)) {
-      filmsRestants.push({
-        titre: card.querySelector('.mini-title').innerText,
-        image: card.querySelector('img').src
-      });
-    }
-  });
+function updateSavedListUI() {
+  const placeholders = document.querySelectorAll('.movie-placeholder')
 
-  const allPlaceholders = document.querySelectorAll('.movie-placeholder');
-  allPlaceholders.forEach(p => {
-    p.classList.remove('filled');
-    p.innerHTML = "";
-  });
+  placeholders.forEach(p => {
+    p.classList.remove('filled')
+    p.innerHTML = ""
+  })
 
-  filmsRestants.forEach((film, index) => {
-    allPlaceholders[index].classList.add('filled');
-    allPlaceholders[index].innerHTML = `
-      <div class="mini-card">
-        <img src="${film.image}" alt="${film.titre}">
-        <div class="mini-card-info">
-          <span class="mini-title">${film.titre}</span>
-          <button class="remove-btn" onclick="supprimerFilm(this)">×</button>
+  savedMovies.forEach((film, index) => {
+    if (index < placeholders.length) {
+      const p = placeholders[index]
+      p.classList.add('filled')
+      p.innerHTML = `
+        <div class="mini-card">
+          <img src="${film.image}" alt="${film.title}">
+          <div class="mini-card-info">
+            <span class="mini-title">${film.title}</span>
+            <span class="mini-director">${film.director}</span>
+            <button class="remove-btn" onclick="supprimerFilm(${index})">×</button>
+          </div>
         </div>
-      </div>
-    `;
-  });
-};
+      `
+    }
+  })
+}

@@ -1,14 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
     const searchBtn = document.getElementById('searchBtn');
-    const searchInput = document.getElementById('searchInput');
+    const searchInput = document.getElementById('movieSearch');
     const resultsTable = document.getElementById('resultsTable');
     const resultsBody = document.getElementById('resultsBody');
     const loadingIndicator = document.getElementById('loadingIndicator');
 
     const wikidataEndpoint = 'https://query.wikidata.org/sparql';
 
-    // Cette variable stockera vos objets propres en mémoire
-    let moviesLibrary = [];
+    // Essaie de récupération depuis le session storage
+    let moviesLibrary = JSON.parse(sessionStorage.getItem('moviesLibrary')) || [];
+    
+    if (moviesLibrary.length > 0) {
+        displayFromMemory(moviesLibrary); 
+    }
 
     searchBtn.addEventListener('click', () => {
         const queryTerm = searchInput.value.trim();
@@ -19,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsBody.innerHTML = '';
         searchBtn.disabled = true;
 
-        // Requête incluant les URIs (?genre, ?director) pour extraire les IDs
         const sparqlQuery = `
             SELECT DISTINCT ?item ?itemLabel ?genre ?genreLabel ?director ?directorLabel ?date WHERE {
               ?item wdt:P31 wd:Q11424 .
@@ -53,20 +56,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const bindings = data.results.bindings;
                 
                 if (bindings.length > 0) {
-                    // ÉTAPE 1 : TRAITEMENT ET STOCKAGE
                     const moviesMap = processData(bindings);
                     
-                    // On transforme la Map en tableau d'objets simples pour la "mémoire"
+                    // 2. STOCKAGE : On transforme en objet simple pour la mémoire ET le storage
+                    // <--- MODIFICATION ICI : J'ai ajouté directorName et genresLabels pour l'affichage futur
                     moviesLibrary = Array.from(moviesMap.values()).map(m => ({
                         id: m.id,
+                        title: m.title,
                         directorId: m.directorId,
-                        genres: Array.from(m.genresIds),
+                        directorName: m.directorName, // Important de garder le nom !
+                        genresIds: Array.from(m.genresIds),
+                        genresLabels: Array.from(m.genresLabels), // Important de garder les labels !
                         year: m.year
                     }));
 
-                    console.log("Bibliothèque en mémoire :", moviesLibrary);
-
-                    // ÉTAPE 2 : AFFICHAGE DU TABLEAU
+                    // <--- SAUVEGARDE EN SESSION STORAGE ICI
+                    sessionStorage.setItem('moviesLibrary', JSON.stringify(moviesLibrary));
                     displayTable(moviesMap);
                     
                 } else {
@@ -83,9 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
-    /**
-     * Transforme les résultats bruts de Wikidata en une Map structurée
-     */
     function processData(bindings) {
         const moviesMap = new Map();
 
@@ -113,29 +115,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return moviesMap;
     }
 
-    /**
-     * Gère l'affichage HTML dans le tableau
-     */
+    // Affiche depuis le fetch (Map complexe avec des Sets)
     function displayTable(moviesMap) {
-        resultsTable.style.display = 'table';
-        resultsBody.innerHTML = ''; // Sécurité
+        // On convertit la Map en Array pour utiliser la fonction générique
+        const list = Array.from(moviesMap.values()).map(m => ({
+            ...m,
+            genresLabels: Array.from(m.genresLabels) // Conversion du Set en Array pour l'affichage
+        }));
+        displayFromMemory(list);
+    }
 
-        moviesMap.forEach(movie => {
+    // 3. NOUVELLE FONCTION D'AFFICHAGE (Compatible mémoire & fetch)
+    // Cette fonction prend un tableau simple en entrée
+    function displayFromMemory(moviesArray) {
+        resultsTable.style.display = 'table';
+        resultsBody.innerHTML = '';
+
+        moviesArray.forEach(movie => {
             const row = resultsBody.insertRow();
             
-            // Colonne ID
             row.insertCell(0).innerHTML = `<small class="text-muted">${movie.id}</small>`;
-            
-            // Colonne Titre
             row.insertCell(1).innerHTML = `<strong>${movie.title}</strong>`;
-            
-            // Colonne Genres (Labels)
-            row.insertCell(2).textContent = Array.from(movie.genresLabels).join(', ') || 'N/A';
-            
-            // Colonne Réalisateur
+            // Ici on gère le fait que ce soit un tableau (Array)
+            row.insertCell(2).textContent = movie.genresLabels.join(', ') || 'N/A';
             row.insertCell(3).textContent = movie.directorName;
-            
-            // Colonne Année
             row.insertCell(4).textContent = movie.year;
         });
     }
