@@ -1,8 +1,5 @@
 import "../style.css"
-import { SparqlClient } from "./SparqlClient.js"
-
-const wikidataUrl = "https://query.wikidata.org/sparql"
-const client = new SparqlClient(wikidataUrl)
+import { searchMoviesOnWikidata } from "./searchFilms.js" 
 
 let currentSearchResults = []
 let savedMovies = JSON.parse(sessionStorage.getItem('moviesUsed')) || []
@@ -25,51 +22,15 @@ async function lancerRecherche() {
 
   resultsDiv.innerHTML = '<div class="loader">Recherche en cours...</div>'
 
-  const maRequete = `
-    SELECT DISTINCT ?item ?itemLabel ?date ?image ?directorLabel ?genreLabel WHERE {
-      ?item wdt:P31 wd:Q11424 .
-      ?item rdfs:label ?itemLabel .
-      FILTER (lang(?itemLabel) = "fr")
-      FILTER (regex(?itemLabel, "${term}", "i"))
-      
-      OPTIONAL { ?item wdt:P577 ?date . }
-      OPTIONAL { ?item wdt:P18 ?image . }
-      
-      OPTIONAL { 
-        ?item wdt:P57 ?director . 
-        ?director rdfs:label ?directorLabel . 
-        FILTER(lang(?directorLabel) = "fr") 
-      }
-      OPTIONAL { 
-        ?item wdt:P136 ?genre . 
-        ?genre rdfs:label ?genreLabel . 
-        FILTER(lang(?genreLabel) = "fr") 
-      }
-
-      SERVICE wikibase:label { bd:serviceParam wikibase:language "fr". }
-    }
-    LIMIT 20
-  `
-
   try {
-    const rawData = await client.query(maRequete)
+    currentSearchResults = await searchMoviesOnWikidata(term)
 
-    if (!rawData || rawData.length === 0) {
+    if (currentSearchResults.length === 0) {
       resultsDiv.innerHTML = "<p>Aucun résultat trouvé pour cette recherche.</p>"
       return
     }
 
-    currentSearchResults = rawData.map(data => ({
-      title: data.itemLabel,
-      image: data.image || null,
-      year: data.date ? new Date(data.date).getFullYear() : "N/C",
-      director: data.directorLabel || "Inconnu",
-      genre: data.genreLabel || "Non classé",
-      id: data.item.value
-    }))
-
     let html = ""
-    
     currentSearchResults.forEach((film, index) => {
       html += `
         <div class="film-card">
@@ -80,10 +41,7 @@ async function lancerRecherche() {
               <p>${film.director} - ${film.year}</p>
               <small>${film.genre}</small>
             </div>
-            <button 
-              class="add-btn" 
-              onclick="ajouterAuxMoviesUsed(${index})"
-            >
+            <button class="add-btn" onclick="ajouterAuxMoviesUsed(${index})">
               <img class="add-logo" src="add.svg" alt="Ajouter"/>
             </button>
           </div>
