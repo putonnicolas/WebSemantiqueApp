@@ -15,7 +15,8 @@ export class SparqlClient {
             }
             
             const data = await response.json();
-            return this._simplifyResults(data);
+            console.log(data)
+            return data;
             
         } catch (error) {
             console.error("Erreur SPARQL :", error);
