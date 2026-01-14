@@ -30,16 +30,19 @@ async function lancerRecherche() {
       return
     }
 
-    let html = ""
+let html = ""
     currentSearchResults.forEach((film, index) => {
       html += `
         <div class="film-card">
-          <img src="${film.image}" alt="${film.title}" />
+          
+          ${ film.image ? `<img src="${film.image}" alt="${film.title}"/>` : '' }
+          
           <div class="film-info-overlay">
             <div class="info-text">
               <h3>${film.title}</h3>
-              <p>${film.director} - ${film.year}</p>
-              <small>${film.genre}</small>
+              <p>${film.directorName} - ${film.year}</p>
+              
+              <small>${film.genresLabels[0]}</small> 
             </div>
             <button class="add-btn" onclick="ajouterAuxMoviesUsed(${index})">
               <img class="add-logo" src="add.svg" alt="Ajouter"/>
@@ -96,7 +99,7 @@ function updateSavedListUI() {
       p.classList.add('filled')
       p.innerHTML = `
         <div class="mini-card">
-          <img src="${film.image}" alt="${film.title}">
+          ${ film.image ? `<img src="${film.image}" alt="${film.title}"/>` : '' }
           <div class="mini-card-info">
             <span class="mini-title">${film.title}</span>
             <button class="remove-btn" onclick="supprimerFilm(${index})">×</button>
