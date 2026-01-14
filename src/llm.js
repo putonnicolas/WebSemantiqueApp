@@ -23,26 +23,3 @@ async function translateToSparql() {
 
     console.log(response.choices[0].message.content);
 }
-
-
-
-async function pitchDuFilm(filmTitle) {
-    const response = await client.chat.completions.create({
-        model: "llama3:70b",
-        messages: [
-            {
-                role: "system",
-                content: "Tu donnes le pitch d'un film en français, en quelques lignes, sans rien ajouter d'autre.",
-            },
-            {
-                role: "user",
-                content: filmTitle,
-            },
-        ],
-        temperature: 0.7,
-    });
-
-    console.log(response.choices[0].message.content);
-}
-
-pitchDuFilm("Fast and furious 2015").catch(console.error);
