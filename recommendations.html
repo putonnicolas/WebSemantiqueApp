@@ -27,8 +27,8 @@
         <hr />
 
         <div id="boutonsNavigation">
-          <a href="recommendations.html" class="menu-item">Mes recommandations</a>
-          <div class="menu-item" id="pageActuel">Films utilisés</div>
+          <div class="menu-item" id="pageActuel">Mes recommandations</div>
+          <a href="index.html" class="menu-item">Films utilisés</a>
         </div>
 
         <hr />
@@ -43,22 +43,15 @@
       </div>
 
       <div id="hero">
-        <div class="search">
-          <div class="searchBar">
-            <input
-              type="text"
-              placeholder="Rechercher un film, un acteur..."
-              id="movieSearch"
-            />
-            <button id="searchBtn">
-              <img src="loupe.svg" alt="Rechercher" />
-            </button>
+        <div class="reco">
+          <div class="reco-title" style="text-align: center;">
+            <h2 id="title">Mes recommandations</h2>
           </div>
         </div>
 
         <div id="results"></div>
       </div>
     </div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/recommendations.js"></script>
   </body>
 </html>

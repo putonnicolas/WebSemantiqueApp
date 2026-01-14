@@ -271,8 +271,9 @@ button {
   transition: border-color 0.25s;
 }
 
-a {
-  color: #646cff;
+a,
+a:visited {
+  color: #ffffff;
   text-decoration: none;
 }
 
