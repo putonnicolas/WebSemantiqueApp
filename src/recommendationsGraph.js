@@ -1,8 +1,7 @@
-// Les constantes SELECTED_MOVIES et WEIGHTS sont définis dans recommendations.js
-// La fonction fetchRecommendations() vient aussi de recommendations.js
+let cy; 
 
-let cy; // Instance Cytoscape globale
 
+// Films sélectionnés par l'utilisateur pour tester le graphe
 const SELECTED_MOVIES = [
   {
     id: "Q25150",
@@ -45,7 +44,7 @@ async function generateGraph() {
   loadingMsg.innerHTML = "Chargement des recommandations...";
 
   try {
-    // Recommandations en dur pour tester le graphe
+    // Recommandations pour tester le graphe (à remplacer par l'appel réel à la fonction de recommendations.js)
     const recommendations = [
       { id: "film1", title: "Inception", year: 2010, recommendation: { score: 0.95 } },
       { id: "film2", title: "Interstellar", year: 2014, recommendation: { score: 0.88 } },
@@ -76,7 +75,7 @@ async function generateGraph() {
 function buildGraphElements(recommendations) {
   const elements = [];
 
-  // Ajouter un nœud unique pour tous les films choisis
+  // Créer un nœud unique pour tous les films choisis
   const selectedMovieTitles = SELECTED_MOVIES.map(m => m.title).join("\n");
   elements.push({
     data: {
@@ -97,9 +96,8 @@ function buildGraphElements(recommendations) {
     });
   });
 
-  // Ajouter les arêtes avec les scores
+  // Ajouter les arêtes avec les scores de similarité
   recommendations.forEach((rec) => {
-    // Créer une seule arête du nœud sélectionné vers le film recommandé
     elements.push({
       data: {
         id: `edge-selected-${rec.id}`,
@@ -126,13 +124,27 @@ function initializeCytoscape(elements) {
     elements: elements,
     style: [
       {
-        selector: "node",
+        selector: "node[type='recommended']",
         style: {
           content: "data(label)",
           "text-valign": "center",
           "text-halign": "center",
           "background-color": "#4a90e2",
           color: "#000",
+          "font-size": 12,
+          "text-wrap": "wrap",
+          width: 120,
+          height: 100
+        },
+      },
+      {
+        selector: "node[type='selected']",
+        style: {
+          content: "data(label)",
+          "text-valign": "center",
+          "text-halign": "center",
+          "background-color": "#14375e",
+          color: "#fff",
           "font-size": 12,
           "text-wrap": "wrap",
           width: 120,
