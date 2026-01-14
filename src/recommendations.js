@@ -43,7 +43,21 @@ const WEIGHTS = {
   LANGUAGE: 5,
 };
 
+// Récupération des films depuis le sessionStorage
+let savedMovies = JSON.parse(sessionStorage.getItem('moviesUsed')) || []
+
 async function getOptimizedRecommendations() {
+  // Vérifier qu'il y a des films sélectionnés
+  if (savedMovies.length === 0) {
+    const container = document.getElementById("results");
+    if (container) {
+      container.innerHTML = "<p>Aucun film sélectionné. Retournez à la page d'accueil pour ajouter des films à votre liste.</p>";
+    }
+    return;
+  }
+  // Récupérer les films sélectionnés depuis le sessionStorage
+  const SELECTED_MOVIES = savedMovies;
+
   const container = document.getElementById("results");
   const loadingMsg = document.getElementById("loadingMsg");
   
@@ -221,6 +235,37 @@ function renderTable(movies) {
   
   container.innerHTML = html;
 }
+
+// Afficher les films sélectionnés dans le panneau de gauche
+function updateSavedListUI() {
+  const placeholders = document.querySelectorAll('.movie-placeholder')
+
+  placeholders.forEach(p => {
+    p.classList.remove('filled')
+    p.innerHTML = ""
+  })
+
+  savedMovies.forEach((film, index) => {
+    if (index < placeholders.length) {
+      const p = placeholders[index]
+      p.classList.add('filled')
+      p.innerHTML = `
+        <div class="mini-card">
+          <img src="${film.image}" alt="${film.title}">
+          <div class="mini-card-info">
+            <span class="mini-title">${film.title}</span>
+          </div>
+        </div>
+      `
+    }
+  })
+}
+
+// Initialisation au chargement de la page
+document.addEventListener("DOMContentLoaded", () => {
+  updateSavedListUI()
+  getOptimizedRecommendations()
+})
 
 document
   .getElementById("btnSearch")
