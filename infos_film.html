@@ -26,9 +26,9 @@
 
         <hr />
 
-        <div id="boutonsNavigation">
-          <div class="menu-item">Mes recommandations</div>
-          <div class="menu-item" id="pageActuel">Films utilisés</div>
+       <div id="boutonsNavigation">
+          <a href="recommendations.html" class="menu-item">Mes recommandations</a>
+          <a href="index.html" class="menu-item">Films utilisés</a>
         </div>
 
         <hr />
@@ -55,19 +55,32 @@
             </button>
           </div>
         </div>
+
         <div class="container">
-            <div class="image_placeholder" id="imageFilm">
-            </div>
+          <div class="moviesInfos">
+            <div class="image_placeholder" id="imageFilm"></div>
             <div class="text_placeholder">
-                <div id="titleFilm"></div>
+              <div id="titleFilm"></div>
+              <hr />
+              <div class="directorAndYear">
+                <div id="director"></div>
+                <p>·</p>
                 <div id="yearFilm"></div>
-                <div id="genreFilm">
-            <p><strong>Genre :</strong></p>
-        </div>
-        <div id="descriptionFilm">
+              </div>
+ 
+              <div id="genreFilm"></div>
+            </div>
+          </div>
+
+          <hr />
+          <div id="summaryFilm">
+            <div class='panelInfos' id="descriptionFilm"></div>
+            <div class='panelInfos' id="IASummary"></div>
+          </div>
         </div>
       </div>
     </div>
     <script type="module" src="/src/infos_film.js"></script>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>

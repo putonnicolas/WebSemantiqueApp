@@ -32,9 +32,10 @@ async function lancerRecherche() {
         "<p>Aucun résultat trouvé pour cette recherche.</p>";
       return;
     }
-
+    
     let html = "";
     currentSearchResults.forEach((film, index) => {
+      console.log(film);
       html += `
         <div class="film-card">
           
@@ -46,7 +47,7 @@ async function lancerRecherche() {
               <h3>${film.title}</h3>
               <p>${film.directorName} - ${film.year}</p>
               
-              <small>${Array.from(film.genresLabels).join(", ")}</small> 
+              <small>${film.genresLabels.at(0)}</small> 
             </div>
 
             <button class="add-btn" onclick="ajouterAuxMoviesUsed(${index})">
