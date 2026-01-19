@@ -13,6 +13,6 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
-    "openai": "^6.15.0"
+    "openai": "^6.16.0"
   }
 }

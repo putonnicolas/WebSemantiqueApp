@@ -5,7 +5,7 @@ const client = new SparqlClient(wikidataUrl);
 
 export async function searchMoviesOnWikidata(term) {
   const query = `
-    SELECT DISTINCT ?item ?itemLabel ?date ?image 
+    SELECT DISTINCT ?item ?itemLabel ?itemDescription ?date ?image 
                     ?director ?directorLabel 
                     ?genre ?genreLabel 
                     ?screenwriter 
@@ -35,7 +35,7 @@ export async function searchMoviesOnWikidata(term) {
       # ACTEURS (P161)
       OPTIONAL { ?item wdt:P161 ?actor . }
 
-      # Le service remplit automatiquement ?actorLabel si ?actor existe
+      # Le service remplit automatiquement ?itemDescription grâce à la langue
       SERVICE wikibase:label { bd:serviceParam wikibase:language "fr,en". }
     }
   `;
@@ -52,6 +52,8 @@ export async function searchMoviesOnWikidata(term) {
   const moviesLibrary = Array.from(moviesMap.values()).map((m) => ({
     id: m.id,
     title: m.title,
+    // 3. AJOUT AU RETOUR FINAL
+    description: m.description,
     year: m.year,
     image: m.image,
     
@@ -81,6 +83,7 @@ function processData(bindings) {
       moviesMap.set(qid, {
         id: qid,
         title: bind.itemLabel ? bind.itemLabel.value : "Titre Inconnu",
+        description: bind.itemDescription ? bind.itemDescription.value : "",
         image: bind.image ? bind.image.value : null,
         year: bind.date ? parseInt(bind.date.value.substring(0, 4)) : "N/C",
         
