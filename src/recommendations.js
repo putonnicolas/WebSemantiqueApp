@@ -9,6 +9,8 @@ const WEIGHTS = {
   LANGUAGE: 5,
 };
 
+let finalResults = [];
+
 const wikidataUrl = "https://query.wikidata.org/sparql";
 const client = new SparqlClient(wikidataUrl);
 
@@ -36,21 +38,46 @@ async function getOptimizedRecommendations() {
   if (container) container.innerHTML = "";
   if (loadingMsg) {
     loadingMsg.style.display = "block";
-    loadingMsg.innerHTML = "Recherche de films que vous pourriez aimer en cours...";
+    loadingMsg.innerHTML =
+      "Recherche de films que vous pourriez aimer en cours...";
   }
 
   console.log("Films source:", SELECTED_MOVIES);
 
-  savedMovies.map((m) => {console.log(m);});
-  ;
-  
+  savedMovies.map((m) => {
+    console.log(m);
+  });
   const criteria = {
-    directors: new Set(savedMovies.map((m) => m.directorId).filter((id) => id && id !== "undefined")),
-    genres: new Set(savedMovies.flatMap((m) => m.genres || []).filter((id) => id && id !== "undefined")),
-    screenwriters: new Set(savedMovies.flatMap((m) => m.screenwriterIds || []).filter((id) => id && id !== "undefined")),
-    countries: new Set(savedMovies.flatMap((m) => m.countryIds || []).filter((id) => id && id !== "undefined")),
-    languages: new Set(savedMovies.flatMap((m) => m.languageIds || []).filter((id) => id && id !== "undefined")),
-    actors: new Set(savedMovies.flatMap((m) => m.cast || []).filter((id) => id && id !== "undefined")),
+    directors: new Set(
+      savedMovies
+        .map((m) => m.directorId)
+        .filter((id) => id && id !== "undefined"),
+    ),
+    genres: new Set(
+      savedMovies
+        .flatMap((m) => m.genres || [])
+        .filter((id) => id && id !== "undefined"),
+    ),
+    screenwriters: new Set(
+      savedMovies
+        .flatMap((m) => m.screenwriterIds || [])
+        .filter((id) => id && id !== "undefined"),
+    ),
+    countries: new Set(
+      savedMovies
+        .flatMap((m) => m.countryIds || [])
+        .filter((id) => id && id !== "undefined"),
+    ),
+    languages: new Set(
+      savedMovies
+        .flatMap((m) => m.languageIds || [])
+        .filter((id) => id && id !== "undefined"),
+    ),
+    actors: new Set(
+      savedMovies
+        .flatMap((m) => m.cast || [])
+        .filter((id) => id && id !== "undefined"),
+    ),
     excluded: new Set(savedMovies.map((m) => m.id).filter((id) => id)),
   };
   console.log("Critères nettoyés:", criteria);
@@ -64,9 +91,8 @@ async function getOptimizedRecommendations() {
   const actList = [...criteria.actors].map((a) => `wd:${a}`).join(" ");
   const excList = [...criteria.excluded].map((e) => `wd:${e}`).join(" ");
 
-
   const query = `
-SELECT DISTINCT ?movie ?movieLabel ?year ?image 
+SELECT DISTINCT ?movie ?movieLabel ?movieDescription ?year ?image 
                 ?director ?directorLabel ?dirId 
                 ?genre ?genreLabel ?genId 
                 ?screenwriter ?scrId 
@@ -156,38 +182,54 @@ LIMIT 500`;
 
     const moviesMap = processData(bindings);
 
-    const finalResults = Array.from(moviesMap.values()).map((movie) => {
+    finalResults = Array.from(moviesMap.values()).map((movie) => {
       let score = 0;
       let reasons = new Set();
 
       movie.genresIds.forEach((g) => {
-        if (criteria.genres.has(g)) { score += WEIGHTS.GENRE; reasons.add("genre"); }
+        if (criteria.genres.has(g)) {
+          score += WEIGHTS.GENRE;
+          reasons.add("genre");
+        }
       });
       console.log(movie);
-      
+
       if (criteria.directors.has(movie.directorId)) {
-        score += WEIGHTS.DIRECTOR; reasons.add("réalisateur");
+        score += WEIGHTS.DIRECTOR;
+        reasons.add("réalisateur");
       }
 
       movie.screenwriterIds.forEach((s) => {
-        if (criteria.screenwriters.has(s)) { score += WEIGHTS.SCREENWRITER; reasons.add("scénariste"); }
+        if (criteria.screenwriters.has(s)) {
+          score += WEIGHTS.SCREENWRITER;
+          reasons.add("scénariste");
+        }
       });
 
       movie.countryIds.forEach((c) => {
-        if (criteria.countries.has(c)) { score += WEIGHTS.COUNTRY; reasons.add("pays"); }
+        if (criteria.countries.has(c)) {
+          score += WEIGHTS.COUNTRY;
+          reasons.add("pays");
+        }
       });
 
       movie.languageIds.forEach((l) => {
-        if (criteria.languages.has(l)) { score += WEIGHTS.LANGUAGE; reasons.add("langue"); }
+        if (criteria.languages.has(l)) {
+          score += WEIGHTS.LANGUAGE;
+          reasons.add("langue");
+        }
       });
 
       movie.actorsIds.forEach((a) => {
-        if (criteria.actors.has(a)) { score += WEIGHTS.CAST; reasons.add("casting"); }
+        if (criteria.actors.has(a)) {
+          score += WEIGHTS.CAST;
+          reasons.add("casting");
+        }
       });
       console.log("Raisons :");
-      
+
       console.log({ score, reasons: Array.from(reasons) });
-      
+
       return {
         ...movie,
         recommendation: { score, reasons: Array.from(reasons) },
@@ -195,7 +237,8 @@ LIMIT 500`;
     });
 
     finalResults.sort(
-      (a, b) => b.recommendation.score - a.recommendation.score || b.year - a.year
+      (a, b) =>
+        b.recommendation.score - a.recommendation.score || b.year - a.year,
     );
 
     console.log("Résultats finaux:", finalResults);
@@ -218,16 +261,17 @@ function processData(bindings) {
     if (!moviesMap.has(qid)) {
       moviesMap.set(qid, {
         id: qid,
+        description: bind.movieDescription ? bind.movieDescription.value : null,
         title: bind.movieLabel ? bind.movieLabel.value : "Titre Inconnu",
         year: bind.year ? parseInt(bind.year.value) : "N/C",
         image: bind.image ? bind.image.value : null,
-        
+
         directorId: bind.dirId ? bind.dirId.value : null,
         directorName: bind.directorLabel ? bind.directorLabel.value : "Inconnu",
-        
+
         genresIds: new Set(),
         genresLabels: new Set(),
-        
+
         screenwriterIds: new Set(),
         countryIds: new Set(),
         languageIds: new Set(),
@@ -254,13 +298,13 @@ async function afficherFilms(finalResults) {
   const resultsDiv = document.querySelector("#results");
 
   let html = "";
-  finalResults.forEach((film) => {
+  finalResults.forEach((film, index) => {
     html += `
         <div class="film-card">
-          ${ film.image ? `<img src="${film.image}" alt="${film.title}"/>` : '' }
+          ${film.image ? `<img src="${film.image}" alt="${film.title}"/>` : ""}
           
           <div class="film-info-overlay">
-            <div class="info-text">
+            <div class="info-text" onclick="ouvrirDetails(${index})">
               <h3>${film.title}</h3>
               <p>${film.directorName} - ${film.year}</p>
               <small>${Array.from(film.genresLabels).at(0)}</small> 
@@ -308,4 +352,26 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(getOptimizedRecommendations, 100);
 });
 
-document.getElementById("btnSearch")?.addEventListener("click", getOptimizedRecommendations);
+document
+  .getElementById("btnSearch")
+  ?.addEventListener("click", getOptimizedRecommendations);
+
+window.ouvrirDetails = function (index) {
+  let film = finalResults[index];
+  film.isRecommended = true;
+
+  // On transforme chaque Set en Array pour que JSON.stringify fonctionne
+  let filmToSave = {
+    ...film,
+    actorsIds: Array.from(film.actorsIds || []),
+    countryIds: Array.from(film.countryIds || []),
+    genresIds: Array.from(film.genresIds || []),
+    genresLabels: Array.from(film.genresLabels || []),
+    languageIds: Array.from(film.languageIds || []),
+    screenwriterIds: Array.from(film.screenwriterIds || [])
+  };
+  
+  sessionStorage.setItem("moviesClick", JSON.stringify(filmToSave));
+
+  window.location.href = "infos_film.html";
+};

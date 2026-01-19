@@ -3,6 +3,7 @@ import OpenAI from "openai";
 const client = new OpenAI({
     baseURL: "https://ollama-ui.pagoda.liris.cnrs.fr/api",
     apiKey: "sk-c7fe7d4c590b4929961ac12579088048",
+    dangerouslyAllowBrowser: true
 });
 
 async function translateToSparql() {
@@ -37,7 +38,7 @@ Mets l'accent sur :
 - Le style ou l'ambiance similaire
 - Ce que l'utilisateur pourrait apprécier spécifiquement
 
-Généralement, un excellent score recommandation est aux alentours de 600 points.
+Généralement, un excellent score recommandation est aux alentours de 30 points.
 On utilise la grille de notation suivante :
 - Genre en commun : +10
 - Réalisateur en commun : +5
@@ -61,24 +62,20 @@ ${JSON.stringify(data.filmRecommande, null, 2)}
 Analyse de la recommandation :
 ${JSON.stringify(data.analyseRecommandation, null, 2)}
 
-Rédige plusieurs paragraphes courts expliquant pourquoi ce film est recommandé.`;
-
-    const response = await client.chat.completions.create({
+Rédige plusieurs paragraphes courts expliquant pourquoi ce film est recommandé. NE DEPASSE PAS LES 800 CARACTERES.`;
+    console.log("Envoie de la requete IA");
+    
+const stream = await client.chat.completions.create({
         model: "llama3:70b",
         messages: [
-            {
-                role: "system",
-                content: systemPrompt,
-            },
-            {
-                role: "user",
-                content: userPrompt,
-            },
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
         ],
         temperature: 0.7,
+        stream: true, 
     });
 
-    return response.choices[0].message.content;
+    return stream; 
 }
 
 // ============================================

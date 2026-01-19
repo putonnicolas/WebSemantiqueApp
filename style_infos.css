@@ -270,6 +270,7 @@ hr {
   justify-content: flex-start;
   align-items: center; /* Important : aligne en haut, n'étire pas ! */
   width: 100%;
+  min-height: fit-content;
   height: fit-content; /* Correction : S'adapte au contenu */
   gap: 35px;
   border-radius: 12px;
@@ -341,31 +342,6 @@ hr {
   margin-right: 8px;
   margin-bottom: 8px;
 }
-
-/* Section Résumé (en bas) */
-#summaryFilm {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  gap: 30px;
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-.panelInfos {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 15px;
-  width: 100%;
-  height: 100%;
-  padding: 20px;
-  border-radius: 12px;
-  color: #ddd;
-  font-size: 1rem;
-  background-color: #333; /* Fond gris du résumé */
-  line-height: 1.6;
-}
-
 
 /* --- GRILLE DE RÉSULTATS (Page Recherche) --- */
 #results {
@@ -452,7 +428,7 @@ hr {
   background-color: #535bf2;
 }
 
-.ia-icon {
+/* .ia-icon {
   width: 18px;
   height: 18px;
   margin-left: 10px;
@@ -464,4 +440,46 @@ hr {
   flex-direction: row;
   align-items: center;
   height: fit-content;
+} */
+
+#summaryFilm {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    width: 100%;
+}
+
+
+
+
+.panelInfos {
+    background-color: #2a2a2a;
+    padding: 20px;
+    border-radius: 12px;
+    min-width: 0;
+    /* Suppression de max-height et overflow-y pour laisser le texte s'étendre */
+    height: auto; 
+    overflow: visible; 
+    margin-bottom: 2em;
+}
+#descriptionFilm {
+    flex: 0 0 40%;
+}
+
+#IASummary {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#IADiv {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.ia-icon {
+    width: 20px;
+    height: 20px;
 }
