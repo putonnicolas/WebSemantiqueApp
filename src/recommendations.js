@@ -1,3 +1,5 @@
+import { SparqlClient } from "./SparqlClient.js";
+
 const WEIGHTS = {
   GENRE: 10,
   DIRECTOR: 15,
@@ -7,54 +9,74 @@ const WEIGHTS = {
   LANGUAGE: 5,
 };
 
-// Récupération des films depuis le sessionStorage
-let savedMovies = JSON.parse(sessionStorage.getItem('moviesUsed')) || []
+const wikidataUrl = "https://query.wikidata.org/sparql";
+const client = new SparqlClient(wikidataUrl);
+
+let savedMovies = JSON.parse(sessionStorage.getItem("moviesUsed")) || [];
 
 async function getOptimizedRecommendations() {
-  // Vérifier qu'il y a des films sélectionnés
+  console.log("--- DÉBUT getOptimizedRecommendations ---");
+
   if (savedMovies.length === 0) {
+    console.log("Aucun film sauvegardé.");
     const container = document.getElementById("results");
     if (container) {
-      container.innerHTML = "<p>Aucun film sélectionné. Retournez à la page d'accueil pour ajouter des films à votre liste.</p>";
+      container.innerHTML =
+        "<p>Aucun film sélectionné. Retournez à la page d'accueil pour ajouter des films à votre liste.</p>";
     }
     return;
   }
-  // Récupérer les films sélectionnés depuis le sessionStorage
-  const SELECTED_MOVIES = savedMovies;
 
+  const SELECTED_MOVIES = savedMovies;
   const container = document.getElementById("results");
   const loadingMsg = document.getElementById("loadingMsg");
-  
-  console.log("getOptimizedRecommendations appelé");
-  console.log("Container trouvé:", !!container);
-  
+
+  console.log("Container DOM trouvé:", !!container);
+
   if (container) container.innerHTML = "";
   if (loadingMsg) {
     loadingMsg.style.display = "block";
-    loadingMsg.innerHTML = "Recherche des acteurs et des films en cours...";
-  } else {
-    console.log("loadingMsg non trouvé");
+    loadingMsg.innerHTML = "Recherche de films que vous pourriez aimer en cours...";
   }
 
+  console.log("Films source:", SELECTED_MOVIES);
+
+  savedMovies.map((m) => {console.log(m);});
+  ;
+  
   const criteria = {
-    directors: new Set(SELECTED_MOVIES.map((m) => m.directorId)),
-    screenwriters: new Set(SELECTED_MOVIES.flatMap((m) => m.screenwriterIds || [])),
-    genres: new Set(SELECTED_MOVIES.flatMap((m) => m.genres || [])),
-    actors: new Set(SELECTED_MOVIES.flatMap((m) => m.cast || [])),
-    countries: new Set(SELECTED_MOVIES.flatMap((m) => m.countryIds || [])),
-    languages: new Set(SELECTED_MOVIES.flatMap((m) => m.languageIds || [])),
-    excluded: new Set(SELECTED_MOVIES.map((m) => m.id)),
+    directors: new Set(savedMovies.map((m) => m.directorId).filter((id) => id && id !== "undefined")),
+    genres: new Set(savedMovies.flatMap((m) => m.genres || []).filter((id) => id && id !== "undefined")),
+    screenwriters: new Set(savedMovies.flatMap((m) => m.screenwriterIds || []).filter((id) => id && id !== "undefined")),
+    countries: new Set(savedMovies.flatMap((m) => m.countryIds || []).filter((id) => id && id !== "undefined")),
+    languages: new Set(savedMovies.flatMap((m) => m.languageIds || []).filter((id) => id && id !== "undefined")),
+    actors: new Set(savedMovies.flatMap((m) => m.cast || []).filter((id) => id && id !== "undefined")),
+    excluded: new Set(savedMovies.map((m) => m.id).filter((id) => id)),
   };
+  console.log("Critères nettoyés:", criteria);
 
-  const minYear = Math.min(...SELECTED_MOVIES.map((m) => m.year)) - 15;
-  const maxYear = Math.max(...SELECTED_MOVIES.map((m) => m.year)) + 5;
+  const years = savedMovies.map((m) => m.year).filter((y) => !isNaN(y));
+  const minYear = years.length ? Math.min(...years) - 15 : 1990;
+  const maxYear = years.length ? Math.max(...years) + 5 : 2030;
 
-  const sparqlQuery = `
-SELECT DISTINCT ?movie ?movieLabel ?year ?image ?dirId ?scrId ?cntId ?lngId ?genId ?actId WHERE {
+  const genList = [...criteria.genres].map((g) => `wd:${g}`).join(" ");
+  const dirList = [...criteria.directors].map((d) => `wd:${d}`).join(" ");
+  const actList = [...criteria.actors].map((a) => `wd:${a}`).join(" ");
+  const excList = [...criteria.excluded].map((e) => `wd:${e}`).join(" ");
+
+  const query = `
+SELECT DISTINCT ?movie ?movieLabel ?year ?image 
+                ?director ?directorLabel ?dirId 
+                ?genre ?genreLabel ?genId 
+                ?screenwriter ?scrId 
+                ?country ?cntId 
+                ?language ?lngId 
+                ?actor ?actorLabel ?actId 
+WHERE {
   {
-    { ?movie wdt:P136 ?genSearch. VALUES ?genSearch { ${[...criteria.genres].map((g) => `wd:${g}`).join(" ")} } }
-    UNION
-    { ?movie wdt:P57 ?dirSearch. VALUES ?dirSearch { ${[...criteria.directors].map((d) => `wd:${d}`).join(" ")} } }
+    ${genList ? `{ ?movie wdt:P136 ?genSearch. VALUES ?genSearch { ${genList} } }` : ""}
+    ${genList && dirList ? "UNION" : ""}
+    ${dirList ? `{ ?movie wdt:P57 ?dirSearch. VALUES ?dirSearch { ${dirList} } }` : ""}
   }
   
   ?movie wdt:P31 wd:Q11424;
@@ -63,102 +85,100 @@ SELECT DISTINCT ?movie ?movieLabel ?year ?image ?dirId ?scrId ?cntId ?lngId ?gen
   FILTER(?year >= ${minYear} && ?year <= ${maxYear})
 
   OPTIONAL { ?movie wdt:P18 ?image. }
-  OPTIONAL { ?movie wdt:P57 ?d. BIND(STRAFTER(STR(?d), "entity/") AS ?dirId) }
-  OPTIONAL { ?movie wdt:P58 ?s. BIND(STRAFTER(STR(?s), "entity/") AS ?scrId) }
-  OPTIONAL { ?movie wdt:P495 ?c. BIND(STRAFTER(STR(?c), "entity/") AS ?cntId) }
-  OPTIONAL { ?movie wdt:P364 ?l. BIND(STRAFTER(STR(?l), "entity/") AS ?lngId) }
-  OPTIONAL { ?movie wdt:P136 ?g. BIND(STRAFTER(STR(?g), "entity/") AS ?genId) }
   
+  # Réalisateur
+  OPTIONAL { 
+    ?movie wdt:P57 ?director. 
+    BIND(STRAFTER(STR(?director), "entity/") AS ?dirId) 
+  }
+  
+  # Genre
+  OPTIONAL { 
+    ?movie wdt:P136 ?genre. 
+    BIND(STRAFTER(STR(?genre), "entity/") AS ?genId) 
+  }
+  
+  # Scénariste
+  OPTIONAL { 
+    ?movie wdt:P58 ?screenwriter. 
+    BIND(STRAFTER(STR(?screenwriter), "entity/") AS ?scrId) 
+  }
+  
+  # Pays
+  OPTIONAL { 
+    ?movie wdt:P495 ?country. 
+    BIND(STRAFTER(STR(?country), "entity/") AS ?cntId) 
+  }
+  
+  # Langue
+  OPTIONAL { 
+    ?movie wdt:P364 ?language. 
+    BIND(STRAFTER(STR(?language), "entity/") AS ?lngId) 
+  }
+  
+  # Acteurs (Seulement ceux qui matchent pour alléger, sinon c'est trop lourd)
+  ${actList ? `
   OPTIONAL { 
     ?movie wdt:P161 ?actor. 
-    VALUES ?actor { ${[...criteria.actors].map((a) => `wd:${a}`).join(" ")} }
-    BIND(STRAFTER(STR(?actor), "entity/") AS ?actId)
-  }
+    VALUES ?actor { ${actList} } 
+    BIND(STRAFTER(STR(?actor), "entity/") AS ?actId) 
+  }` : ""}
 
-  FILTER NOT EXISTS { VALUES ?err { ${[...criteria.excluded].map((e) => `wd:${e}`).join(" ")} } FILTER(?movie = ?err) }
+  FILTER NOT EXISTS { VALUES ?err { ${excList || "wd:Q0"} } FILTER(?movie = ?err) }
   
+  # Le service Label remplit automatiquement les variables ?xxxLabel
   SERVICE wikibase:label { bd:serviceParam wikibase:language "fr,en". }
 }
-LIMIT 500`;
+  LIMIT 100`;
+
+  console.log("Requête générée:\n", query);
 
   try {
-    const response = await fetch(
-      "https://query.wikidata.org/sparql?format=json&query=" +
-        encodeURIComponent(sparqlQuery),
-      {
-        headers: { Accept: "application/sparql-results+json" },
-      },
-    );
-    const data = await response.json();
-    const rows = data.results.bindings;
+    const rawData = await client.query(query);
+    console.log("Données brutes reçues:", rawData);
 
-    const movieMap = new Map();
+    const bindings = rawData?.results?.bindings || rawData;
 
-    rows.forEach((row) => {
-      const id = row.movie.value.split("/").pop();
-      if (!movieMap.has(id)) {
-        movieMap.set(id, {
-          title: row.movieLabel.value,
-          year: row.year.value,
-          image: row.image?.value || null,
-          directors: new Set(),
-          screenwriters: new Set(),
-          countries: new Set(),
-          languages: new Set(),
-          genres: new Set(),
-          actors: new Set(),
-        });
-      }
-      const m = movieMap.get(id);
-      if (row.dirId) m.directors.add(row.dirId.value);
-      if (row.scrId) m.screenwriters.add(row.scrId.value);
-      if (row.cntId) m.countries.add(row.cntId.value);
-      if (row.lngId) m.languages.add(row.lngId.value);
-      if (row.genId) m.genres.add(row.genId.value);
-      if (row.actId) m.actors.add(row.actId.value);
-    });
+    if (!bindings || bindings.length === 0) {
+      console.log("Aucun résultat trouvé.");
+      if (loadingMsg) loadingMsg.innerHTML = "Pas de résultats correspondants.";
+      return [];
+    }
 
-    const finalResults = Array.from(movieMap.values()).map((movie) => {
+    const moviesMap = processData(bindings);
+
+    const finalResults = Array.from(moviesMap.values()).map((movie) => {
       let score = 0;
       let reasons = new Set();
 
-      movie.genres.forEach((g) => {
-        if (criteria.genres.has(g)) {
-          score += WEIGHTS.GENRE;
-          reasons.add("genre");
-        }
+      movie.genresIds.forEach((g) => {
+        if (criteria.genres.has(g)) { score += WEIGHTS.GENRE; reasons.add("genre"); }
       });
-      movie.directors.forEach((d) => {
-        if (criteria.directors.has(d)) {
-          score += WEIGHTS.DIRECTOR;
-          reasons.add("réalisateur");
-        }
-      });
-      movie.screenwriters.forEach((s) => {
-        if (criteria.screenwriters.has(s)) {
-          score += WEIGHTS.SCREENWRITER;
-          reasons.add("scénariste");
-        }
-      });
-      movie.countries.forEach((c) => {
-        if (criteria.countries.has(c)) {
-          score += WEIGHTS.COUNTRY;
-          reasons.add("pays");
-        }
-      });
-      movie.languages.forEach((l) => {
-        if (criteria.languages.has(l)) {
-          score += WEIGHTS.LANGUAGE;
-          reasons.add("langue");
-        }
-      });
-      movie.actors.forEach((a) => {
-        if (criteria.actors.has(a)) {
-          score += WEIGHTS.CAST;
-          reasons.add("casting");
-        }
+      console.log(movie);
+      
+      if (criteria.directors.has(movie.directorId)) {
+        score += WEIGHTS.DIRECTOR; reasons.add("réalisateur");
+      }
+
+      movie.screenwriterIds.forEach((s) => {
+        if (criteria.screenwriters.has(s)) { score += WEIGHTS.SCREENWRITER; reasons.add("scénariste"); }
       });
 
+      movie.countryIds.forEach((c) => {
+        if (criteria.countries.has(c)) { score += WEIGHTS.COUNTRY; reasons.add("pays"); }
+      });
+
+      movie.languageIds.forEach((l) => {
+        if (criteria.languages.has(l)) { score += WEIGHTS.LANGUAGE; reasons.add("langue"); }
+      });
+
+      movie.actorsIds.forEach((a) => {
+        if (criteria.actors.has(a)) { score += WEIGHTS.CAST; reasons.add("casting"); }
+      });
+      console.log("Raisons :");
+      
+      console.log({ score, reasons: Array.from(reasons) });
+      
       return {
         ...movie,
         recommendation: { score, reasons: Array.from(reasons) },
@@ -166,71 +186,118 @@ LIMIT 500`;
     });
 
     finalResults.sort(
-      (a, b) =>
-        b.recommendation.score - a.recommendation.score || b.year - a.year,
+      (a, b) => b.recommendation.score - a.recommendation.score || b.year - a.year
     );
 
+    console.log("Résultats finaux:", finalResults);
+
     if (loadingMsg) loadingMsg.style.display = "none";
-    renderTable(finalResults.slice(0, 15));
+    afficherFilms(finalResults);
   } catch (error) {
-    console.error("Erreur:", error);
+    console.error("ERREUR FATALE:", error);
     if (loadingMsg)
-      loadingMsg.innerHTML = "Délai d'attente dépassé. Réessayez.";
+      loadingMsg.innerHTML = "Erreur technique lors de la recherche.";
   }
 }
 
-function renderTable(movies) {
-  const container = document.getElementById("results");
-  
-  const html = `
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; padding: 20px;">
-      ${movies.map((m) => `
-        <div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s;">
-          ${m.image ? `<img src="${m.image}" alt="${m.title}" style="width: 100%; height: 300px; object-fit: cover;">` : `<div style="width: 100%; height: 300px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999;">Pas d'image</div>`}
-          <div style="padding: 15px;">
-            <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #333;">${m.title}</h3>
-            <p style="margin: 5px 0; color: #666; font-size: 14px;"><strong>Année:</strong> ${m.year}</p>
-            <p style="margin: 5px 0; color: #d32f2f; font-size: 14px;"><strong>Score:</strong> ${m.recommendation.score}</p>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  `;
-  
-  container.innerHTML = html;
+function processData(bindings) {
+  const moviesMap = new Map();
+
+  bindings.forEach((bind) => {
+    const qid = bind.movie.value.split("/").pop();
+
+    if (!moviesMap.has(qid)) {
+      moviesMap.set(qid, {
+        id: qid,
+        title: bind.movieLabel ? bind.movieLabel.value : "Titre Inconnu",
+        year: bind.year ? parseInt(bind.year.value) : "N/C",
+        image: bind.image ? bind.image.value : null,
+        
+        directorId: bind.dirId ? bind.dirId.value : null,
+        directorName: bind.directorLabel ? bind.directorLabel.value : "Inconnu",
+        
+        genresIds: new Set(),
+        genresLabels: new Set(),
+        
+        screenwriterIds: new Set(),
+        countryIds: new Set(),
+        languageIds: new Set(),
+        actorsIds: new Set(),
+      });
+    }
+
+    const film = moviesMap.get(qid);
+
+    if (bind.genId) {
+      film.genresIds.add(bind.genId.value);
+      if (bind.genreLabel) film.genresLabels.add(bind.genreLabel.value);
+    }
+    if (bind.scrId) film.screenwriterIds.add(bind.scrId.value);
+    if (bind.cntId) film.countryIds.add(bind.cntId.value);
+    if (bind.lngId) film.languageIds.add(bind.lngId.value);
+    if (bind.actId) film.actorsIds.add(bind.actId.value);
+  });
+
+  return moviesMap;
 }
 
-// Afficher les films sélectionnés dans le panneau de gauche
-function updateSavedListUI() {
-  const placeholders = document.querySelectorAll('.movie-placeholder')
+async function afficherFilms(finalResults) {
+  const resultsDiv = document.querySelector("#results");
 
-  placeholders.forEach(p => {
-    p.classList.remove('filled')
-    p.innerHTML = ""
-  })
+  let html = "";
+  finalResults.forEach((film) => {
+    const genreText = Array.from(film.genresLabels).join(", ");
+
+    html += `
+        <div class="film-card">
+          ${ film.image ? `<img src="${film.image}" alt="${film.title}"/>` : '' }
+          
+          <div class="film-info-overlay">
+            <div class="info-text">
+              <h3>${film.title}</h3>
+              <p>${film.directorName} - ${film.year}</p>
+              <small>${genreText}</small> 
+              <br>
+              <small style="color:#aaa">Match: ${film.recommendation.reasons.join(", ")}</small>
+            </div>
+            <div class="score-badge">${film.recommendation.score}</div>
+          </div>
+        </div>
+      `;
+  });
+
+  resultsDiv.innerHTML = html;
+}
+
+function updateSavedListUI() {
+  const placeholders = document.querySelectorAll(".movie-placeholder");
+
+  placeholders.forEach((p) => {
+    p.classList.remove("filled");
+    p.innerHTML = "";
+  });
 
   savedMovies.forEach((film, index) => {
     if (index < placeholders.length) {
-      const p = placeholders[index]
-      p.classList.add('filled')
+      const p = placeholders[index];
+      p.classList.add("filled");
       p.innerHTML = `
         <div class="mini-card">
-          <img src="${film.image}" alt="${film.title}">
+          <img src="${film.image || ''}" alt="${film.title}">
           <div class="mini-card-info">
             <span class="mini-title">${film.title}</span>
           </div>
         </div>
-      `
+      `;
     }
-  })
+  });
 }
 
-// Initialisation au chargement de la page
+// Initialisation
 document.addEventListener("DOMContentLoaded", () => {
-  updateSavedListUI()
-  getOptimizedRecommendations()
-})
+  updateSavedListUI();
+  // Petit délai pour assurer que tout est chargé
+  setTimeout(getOptimizedRecommendations, 100);
+});
 
-document
-  .getElementById("btnSearch")
-  ?.addEventListener("click", getOptimizedRecommendations);
+document.getElementById("btnSearch")?.addEventListener("click", getOptimizedRecommendations);

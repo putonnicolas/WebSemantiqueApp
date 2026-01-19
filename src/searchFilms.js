@@ -4,7 +4,6 @@ const wikidataUrl = "https://query.wikidata.org/sparql";
 const client = new SparqlClient(wikidataUrl);
 
 export async function searchMoviesOnWikidata(term) {
-  // 1. AJOUT DE ?actorLabel DANS LE SELECT
   const query = `
     SELECT DISTINCT ?item ?itemLabel ?date ?image 
                     ?director ?directorLabel 
@@ -66,9 +65,8 @@ export async function searchMoviesOnWikidata(term) {
     genres: Array.from(m.genresIds),
     genre: Array.from(m.genresLabels).join(", "),
 
-    cast: Array.from(m.actorsMap.keys())
+    cast: Array.from(m.cast.keys())
   }));
-  console.log(moviesLibrary);
   
   return moviesLibrary;
 }
@@ -95,7 +93,7 @@ function processData(bindings) {
         countryIds: new Set(),
         languageIds: new Set(),
         
-        actorsMap: new Map() 
+        cast: new Map() 
       });
     }
 
@@ -113,7 +111,7 @@ function processData(bindings) {
         const actorId = bind.actor.value.split("/").pop();
         const actorName = bind.actorLabel ? bind.actorLabel.value : "Nom Inconnu";
         
-        film.actorsMap.set(actorId, actorName);
+        film.cast.set(actorId, actorName);
     }
   });
 
