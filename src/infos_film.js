@@ -64,7 +64,7 @@ async function displayFilmDetails(movieSelected) {
   } else {
     yearDiv.innerHTML = "<p>Année de sortie non disponible</p>";
   }
-  movieSelected.isRecommended = true
+
   // Affiche l'explication IA s'il y en a une
   let explicationIA = "Recommandé car similaire à ....";
   if (movieSelected.isRecommended)

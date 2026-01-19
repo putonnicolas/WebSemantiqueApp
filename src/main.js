@@ -66,7 +66,7 @@ try {
             
             <div class="info-text" onclick="ouvrirDetails(${index})">
               <h3>${film.title}</h3>
-              <p>${film.directorName} - ${film.year}</p>
+              <p>${film.director} - ${film.year}</p>
               
               <small>${film.genresLabels.at(0)}</small> 
             </div>

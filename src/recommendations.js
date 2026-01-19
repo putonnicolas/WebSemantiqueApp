@@ -64,6 +64,7 @@ async function getOptimizedRecommendations() {
   const actList = [...criteria.actors].map((a) => `wd:${a}`).join(" ");
   const excList = [...criteria.excluded].map((e) => `wd:${e}`).join(" ");
 
+
   const query = `
 SELECT DISTINCT ?movie ?movieLabel ?year ?image 
                 ?director ?directorLabel ?dirId 
@@ -74,16 +75,27 @@ SELECT DISTINCT ?movie ?movieLabel ?year ?image
                 ?actor ?actorLabel ?actId 
 WHERE {
   {
-    ${genList ? `{ ?movie wdt:P136 ?genSearch. VALUES ?genSearch { ${genList} } }` : ""}
-    ${genList && dirList ? "UNION" : ""}
-    ${dirList ? `{ ?movie wdt:P57 ?dirSearch. VALUES ?dirSearch { ${dirList} } }` : ""}
+    # --- SOUS-REQUÊTE : On sélectionne d'abord les 50 films uniques ---
+    SELECT DISTINCT ?movie ?year WHERE {
+      {
+        ${genList ? `{ ?movie wdt:P136 ?genSearch. VALUES ?genSearch { ${genList} } }` : ""}
+        ${genList && dirList ? "UNION" : ""}
+        ${dirList ? `{ ?movie wdt:P57 ?dirSearch. VALUES ?dirSearch { ${dirList} } }` : ""}
+      }
+      
+      ?movie wdt:P31 wd:Q11424;
+             wdt:P577 ?date.
+      BIND(YEAR(?date) AS ?year)
+      FILTER(?year >= ${minYear} && ?year <= ${maxYear})
+
+      # Exclusion des films déjà enregistrés
+      FILTER NOT EXISTS { VALUES ?err { ${excList || "wd:Q0"} } FILTER(?movie = ?err) }
+    }
+    LIMIT 50
   }
   
-  ?movie wdt:P31 wd:Q11424;
-         wdt:P577 ?date.
-  BIND(YEAR(?date) AS ?year)
-  FILTER(?year >= ${minYear} && ?year <= ${maxYear})
-
+  # --- RÉCUPÉRATION DES DÉTAILS (Uniquement pour les films sélectionnés au-dessus) ---
+  
   OPTIONAL { ?movie wdt:P18 ?image. }
   
   # Réalisateur
@@ -116,20 +128,17 @@ WHERE {
     BIND(STRAFTER(STR(?language), "entity/") AS ?lngId) 
   }
   
-  # Acteurs (Seulement ceux qui matchent pour alléger, sinon c'est trop lourd)
-  ${actList ? `
+  # Acteurs (On filtre par ceux du profil pour accélérer, mais sans bloquer)
   OPTIONAL { 
     ?movie wdt:P161 ?actor. 
-    VALUES ?actor { ${actList} } 
+    ${actList ? `VALUES ?actor { ${actList} }` : ""} 
     BIND(STRAFTER(STR(?actor), "entity/") AS ?actId) 
-  }` : ""}
+  }
 
-  FILTER NOT EXISTS { VALUES ?err { ${excList || "wd:Q0"} } FILTER(?movie = ?err) }
-  
-  # Le service Label remplit automatiquement les variables ?xxxLabel
   SERVICE wikibase:label { bd:serviceParam wikibase:language "fr,en". }
 }
-  LIMIT 100`;
+ORDER BY DESC(?year)
+LIMIT 500`;
 
   console.log("Requête générée:\n", query);
 
@@ -246,8 +255,6 @@ async function afficherFilms(finalResults) {
 
   let html = "";
   finalResults.forEach((film) => {
-    const genreText = Array.from(film.genresLabels).join(", ");
-
     html += `
         <div class="film-card">
           ${ film.image ? `<img src="${film.image}" alt="${film.title}"/>` : '' }
@@ -256,7 +263,7 @@ async function afficherFilms(finalResults) {
             <div class="info-text">
               <h3>${film.title}</h3>
               <p>${film.directorName} - ${film.year}</p>
-              <small>${genreText}</small> 
+              <small>${Array.from(film.genresLabels).at(0)}</small> 
               <br>
               <small style="color:#aaa">Match: ${film.recommendation.reasons.join(", ")}</small>
             </div>
@@ -283,9 +290,10 @@ function updateSavedListUI() {
       p.classList.add("filled");
       p.innerHTML = `
         <div class="mini-card">
-          <img src="${film.image || ''}" alt="${film.title}">
+          ${film.image ? `<img src="${film.image}" alt="${film.title}"/>` : ""}
           <div class="mini-card-info">
             <span class="mini-title">${film.title}</span>
+            <button class="remove-btn" onclick="supprimerFilm(${index})">×</button>
           </div>
         </div>
       `;
