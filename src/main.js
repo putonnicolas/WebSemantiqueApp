@@ -15,16 +15,37 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+  updateSavedListUI();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const searchTerm = urlParams.get('search');
+
+  if (searchTerm) {
+    document.querySelector("#movieSearch").value = searchTerm;
+    lancerRecherche();
+  }
+
+  document.querySelector("#searchBtn").addEventListener("click", lancerRecherche);
+  document.querySelector("#movieSearch").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") lancerRecherche();
+  });
+});
+
 async function lancerRecherche() {
   const searchInput = document.querySelector("#movieSearch");
-  const resultsDiv = document.querySelector("#results");
   const term = searchInput.value.trim();
-
   if (!term) return;
 
+  if (!window.location.pathname.endsWith("index.html") && window.location.pathname !== "/") {
+    window.location.href = `index.html?search=${encodeURIComponent(term)}`;
+    return;
+  }
+
+  const resultsDiv = document.querySelector("#results");
   resultsDiv.innerHTML = '<div class="loader">Recherche en cours...</div>';
 
-  try {
+try {
     currentSearchResults = await searchMoviesOnWikidata(term);
 
     if (currentSearchResults.length === 0) {
