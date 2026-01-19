@@ -66,13 +66,9 @@ try {
             
             <div class="info-text" onclick="ouvrirDetails(${index})">
               <h3>${film.title}</h3>
-              <p>${film.director} - ${film.year}</p>
+              <p>${film.directorName} - ${film.year}</p>
               
-<<<<<<< HEAD
-              <small>${film.genre}</small> 
-=======
               <small>${film.genresLabels.at(0)}</small> 
->>>>>>> Feature/IHM
             </div>
 
             <button class="add-btn" onclick="ajouterAuxMoviesUsed(${index})">

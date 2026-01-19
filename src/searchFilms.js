@@ -65,7 +65,7 @@ export async function searchMoviesOnWikidata(term) {
     languageIds: Array.from(m.languageIds),
 
     genres: Array.from(m.genresIds),
-    genre: Array.from(m.genresLabels).join(", "),
+    genresLabels: Array.from(m.genresLabels).join(", "),
 
     cast: Array.from(m.cast.keys())
   }));
