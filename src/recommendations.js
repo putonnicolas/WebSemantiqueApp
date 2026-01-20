@@ -2,7 +2,7 @@ import { SparqlClient } from "./SparqlClient.js";
 
 const WEIGHTS = {
   GENRE: 10,
-  DIRECTOR: 15,
+  DIRECTOR: 10,
   SCREENWRITER: 10,
   CAST: 15,
   MAIN_SUBJECT: 12,
@@ -230,14 +230,29 @@ async function getOptimizedRecommendations() {
 
     // Fetch details in batches to avoid timeouts
     const BATCH_SIZE = 10;
+    const BATCH_TIMEOUT = 10000; // 10 seconds
     const allMovieIds = Array.from(candidateMovieIds);
-    const allBindings = [];
 
     console.log(`📦 Fetching details for ${allMovieIds.length} candidates in batches of ${BATCH_SIZE}...`);
 
+    // Helper function to add timeout to a promise
+    const withTimeout = (promise, ms, batchNum) => {
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
+      );
+      return Promise.race([promise, timeout]).catch(err => {
+        console.warn(`  ⏱️  Batch ${batchNum} timed out or failed: ${err.message}`);
+        return [];
+      });
+    };
+
+    // Create all batch promises
+    const batchPromises = [];
     for (let i = 0; i < allMovieIds.length; i += BATCH_SIZE) {
       const batch = allMovieIds.slice(i, i + BATCH_SIZE);
       const movieIdList = batch.map(id => `wd:${id}`).join(" ");
+      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(allMovieIds.length / BATCH_SIZE);
       
       const detailsQuery = `
 SELECT DISTINCT ?movie ?movieLabel ?movieDescription ?year ?image 
@@ -294,15 +309,19 @@ WHERE {
 ORDER BY DESC(?year)
 `;
 
-      try {
-        const batchData = await client.query(detailsQuery);
-        const batchBindings = batchData?.results?.bindings || batchData || [];
-        allBindings.push(...batchBindings);
-        console.log(`  ✓ Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(allMovieIds.length / BATCH_SIZE)}: ${batchBindings.length} results`);
-      } catch (err) {
-        console.warn(`  ⚠️  Batch ${Math.floor(i / BATCH_SIZE) + 1} failed, skipping:`, err.message);
-      }
+      const batchPromise = client.query(detailsQuery)
+        .then(batchData => {
+          const batchBindings = batchData?.results?.bindings || batchData || [];
+          console.log(`  ✓ Batch ${batchNumber}/${totalBatches}: ${batchBindings.length} results`);
+          return batchBindings;
+        });
+
+      batchPromises.push(withTimeout(batchPromise, BATCH_TIMEOUT, batchNumber));
     }
+
+    // Execute all batches in parallel
+    const batchResults = await Promise.all(batchPromises);
+    const allBindings = batchResults.flat();
 
     console.log(`📊 Total results fetched: ${allBindings.length}`);
 
