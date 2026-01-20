@@ -5,6 +5,7 @@ const WEIGHTS = {
   DIRECTOR: 15,
   SCREENWRITER: 10,
   CAST: 15,
+  MAIN_SUBJECT: 12,
 };
 
 let finalResults = [];
@@ -76,6 +77,11 @@ async function getOptimizedRecommendations() {
         .flatMap((m) => m.cast || [])
         .filter((id) => id && id !== "undefined"),
     ),
+    mainSubjects: new Set(
+      savedMovies
+        .flatMap((m) => m.mainSubjectIds || [])
+        .filter((id) => id && id !== "undefined"),
+    ),
     excluded: new Set(savedMovies.map((m) => m.id).filter((id) => id)),
   };
   console.log("Critères nettoyés:", criteria);
@@ -88,6 +94,7 @@ async function getOptimizedRecommendations() {
   const dirList = [...criteria.directors].map((d) => `wd:${d}`).join(" ");
   const actList = [...criteria.actors].map((a) => `wd:${a}`).join(" ");
   const scrList = [...criteria.screenwriters].map((s) => `wd:${s}`).join(" ");
+  const subjList = [...criteria.mainSubjects].map((s) => `wd:${s}`).join(" ");
   const excList = [...criteria.excluded].map((e) => `wd:${e}`).join(" ");
 
   console.log("📋 Criteria sizes:", {
@@ -95,6 +102,7 @@ async function getOptimizedRecommendations() {
     genres: criteria.genres.size,
     screenwriters: criteria.screenwriters.size,
     actors: criteria.actors.size,
+    mainSubjects: criteria.mainSubjects.size,
   });
   
   console.log("📋 Lists prepared:", {
@@ -102,6 +110,7 @@ async function getOptimizedRecommendations() {
     genList: genList ? `${genList.substring(0, 50)}...` : "EMPTY",
     actList: actList ? `${actList.substring(0, 50)}...` : "EMPTY",
     scrList: scrList ? `${scrList.substring(0, 50)}...` : "EMPTY",
+    subjList: subjList ? `${subjList.substring(0, 50)}...` : "EMPTY",
   });
 
   console.log("🎬 Multi-tier query approach: fetching candidates by tier...");
@@ -151,6 +160,21 @@ async function getOptimizedRecommendations() {
       console.log(`    ✓ Found ${scrBindings.length} from screenwriters`);
     } else {
       console.log("  ⭕ Tier 2 SKIPPED: No screenwriters in criteria");
+    }
+
+    // Tier 2.5: Main Subjects (90 movies max) - strong thematic signal
+    if (subjList) {
+      console.log("  🎯 Tier 2.5: Fetching from main subjects...");
+      const subjQuery = buildCandidateQuery(
+        `?movie wdt:P921 ?subj. VALUES ?subj { ${subjList} }`,
+        90
+      );
+      const subjResults = await client.query(subjQuery);
+      const subjBindings = subjResults?.results?.bindings || subjResults || [];
+      subjBindings.forEach(b => candidateMovieIds.add(b.movie.value.split("/").pop()));
+      console.log(`    ✓ Found ${subjBindings.length} from main subjects`);
+    } else {
+      console.log("  ⭕ Tier 2.5 SKIPPED: No main subjects in criteria");
     }
 
     // Tier 3: Actors (80 movies max) - decent signal
@@ -259,6 +283,11 @@ WHERE {
     ?movie wdt:P161 ?actor. 
     BIND(STRAFTER(STR(?actor), "entity/") AS ?actId) 
   }
+  
+  OPTIONAL { 
+    ?movie wdt:P921 ?mainSubject. 
+    BIND(STRAFTER(STR(?mainSubject), "entity/") AS ?subjId) 
+  }
 
   SERVICE wikibase:label { bd:serviceParam wikibase:language "fr,en". }
 }
@@ -315,6 +344,13 @@ ORDER BY DESC(?year)
           reasons.add("casting");
         }
       });
+
+      movie.mainSubjectIds.forEach((s) => {
+        if (criteria.mainSubjects.has(s)) {
+          score += WEIGHTS.MAIN_SUBJECT;
+          reasons.add("sujet principal");
+        }
+      });
       console.log("Raisons :");
 
       console.log({ score, reasons: Array.from(reasons) });
@@ -365,6 +401,7 @@ function processData(bindings) {
         countryIds: new Set(),
         languageIds: new Set(),
         actorsIds: new Set(),
+        mainSubjectIds: new Set(),
       });
     }
 
@@ -378,6 +415,7 @@ function processData(bindings) {
     if (bind.cntId) film.countryIds.add(bind.cntId.value);
     if (bind.lngId) film.languageIds.add(bind.lngId.value);
     if (bind.actId) film.actorsIds.add(bind.actId.value);
+    if (bind.subjId) film.mainSubjectIds.add(bind.subjId.value);
   });
 
   return moviesMap;
@@ -457,7 +495,8 @@ window.ouvrirDetails = function (index) {
     genresIds: Array.from(film.genresIds || []),
     genresLabels: Array.from(film.genresLabels || []),
     languageIds: Array.from(film.languageIds || []),
-    screenwriterIds: Array.from(film.screenwriterIds || [])
+    screenwriterIds: Array.from(film.screenwriterIds || []),
+    mainSubjectIds: Array.from(film.mainSubjectIds || [])
   };
   
   sessionStorage.setItem("moviesClick", JSON.stringify(filmToSave));

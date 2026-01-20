@@ -11,7 +11,8 @@ export async function searchMoviesOnWikidata(term) {
                     ?screenwriter 
                     ?country 
                     ?language 
-                    ?actor ?actorLabel WHERE {    
+                    ?actor ?actorLabel 
+                    ?mainSubject WHERE {    
 
       # MOTEUR DE RECHERCHE
       SERVICE wikibase:mwapi {
@@ -34,6 +35,9 @@ export async function searchMoviesOnWikidata(term) {
 
       # ACTEURS (P161)
       OPTIONAL { ?item wdt:P161 ?actor . }
+      
+      # SUJETS PRINCIPAUX (P921)
+      OPTIONAL { ?item wdt:P921 ?mainSubject . }
 
       # Le service remplit automatiquement ?itemDescription grâce à la langue
       SERVICE wikibase:label { bd:serviceParam wikibase:language "fr,en". }
@@ -63,6 +67,7 @@ export async function searchMoviesOnWikidata(term) {
     screenwriterIds: Array.from(m.screenwriterIds),
     countryIds: Array.from(m.countryIds),
     languageIds: Array.from(m.languageIds),
+    mainSubjectIds: Array.from(m.mainSubjectIds),
 
     genres: Array.from(m.genresIds),
     genresLabels: Array.from(m.genresLabels) ,
@@ -95,6 +100,7 @@ function processData(bindings) {
         screenwriterIds: new Set(),
         countryIds: new Set(),
         languageIds: new Set(),
+        mainSubjectIds: new Set(),
         
         cast: new Map() 
       });
@@ -109,6 +115,7 @@ function processData(bindings) {
     if (bind.screenwriter) film.screenwriterIds.add(bind.screenwriter.value.split("/").pop());
     if (bind.country) film.countryIds.add(bind.country.value.split("/").pop());
     if (bind.language) film.languageIds.add(bind.language.value.split("/").pop());
+    if (bind.mainSubject) film.mainSubjectIds.add(bind.mainSubject.value.split("/").pop());
 
     if (bind.actor) {
         const actorId = bind.actor.value.split("/").pop();
