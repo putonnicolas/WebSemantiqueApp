@@ -306,7 +306,7 @@ ORDER BY DESC(?year)
 
     const moviesMap = processData(allBindings);
 
-    let finalResults = Array.from(moviesMap.values()).map((movie) => {
+    finalResults = Array.from(moviesMap.values()).map((movie) => {
       let score = 0;
       let reasons = new Set();
 
@@ -343,9 +343,6 @@ ORDER BY DESC(?year)
           reasons.add("sujet principal");
         }
       });
-      console.log("Raisons :");
-
-      console.log({ score, reasons: Array.from(reasons) });
 
       return {
         ...movie,
@@ -427,14 +424,16 @@ function processData(bindings) {
 async function afficherFilms(finalResults) {
   const resultsDiv = document.querySelector("#results");
 
+  console.log("[reco] Rendering films", finalResults.length);
+
   let html = "";
   finalResults.forEach((film, index) => {
     html += `
-        <div class="film-card">
+        <div class="film-card" onclick="ouvrirDetails(${index})">
           ${film.image ? `<img src="${film.image}" alt="${film.title}"/>` : ""}
           
           <div class="film-info-overlay">
-            <div class="info-text" onclick="ouvrirDetails(${index})">
+            <div class="info-text">
               <h3>${film.title}</h3>
               <p>${film.directorName} - ${film.year}</p>
               <small>${Array.from(film.genresLabels).at(0)}</small> 
@@ -487,22 +486,43 @@ document
   ?.addEventListener("click", getOptimizedRecommendations);
 
 window.ouvrirDetails = function (index) {
+  console.log("[reco] ouvrirDetails invoked", { index, total: finalResults.length });
   let film = finalResults[index];
-  film.isRecommended = true;
 
+  if (!film) {
+    console.error("[reco] No film found at index", index, "finalResults:", finalResults);
+    return;
+  }
+  
   // On transforme chaque Set en Array pour que JSON.stringify fonctionne
   let filmToSave = {
-    ...film,
+    id: film.id,
+    title: film.title,
+    description: film.description,
+    year: film.year,
+    image: film.image,
+    directorId: film.directorId,
+    director: film.directorName,
+    directorName: film.directorName,
     actorsIds: Array.from(film.actorsIds || []),
+    cast: Array.from(film.actorsIds || []),
     countryIds: Array.from(film.countryIds || []),
     genresIds: Array.from(film.genresIds || []),
+    genres: Array.from(film.genresIds || []),
     genresLabels: Array.from(film.genresLabels || []),
     languageIds: Array.from(film.languageIds || []),
     screenwriterIds: Array.from(film.screenwriterIds || []),
-    mainSubjectIds: Array.from(film.mainSubjectIds || [])
+    mainSubjectIds: Array.from(film.mainSubjectIds || []),
+    isRecommended: true,
+    recommendation: film.recommendation
   };
+  console.log("[reco] filmToSave ready", filmToSave);
   
-  sessionStorage.setItem("moviesClick", JSON.stringify(filmToSave));
-
-  window.location.href = "infos_film.html";
+  try {
+    sessionStorage.setItem("moviesClick", JSON.stringify(filmToSave));
+    console.log("[reco] sessionStorage set, navigating to infos_film.html");
+    window.location.href = "infos_film.html";
+  } catch (err) {
+    console.error("[reco] Failed to persist or navigate", err);
+  }
 };

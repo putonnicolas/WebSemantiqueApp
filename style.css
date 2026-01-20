@@ -173,6 +173,7 @@ hr {
   overflow: hidden;
   border: 1px solid #333;
   transition: transform 0.3s ease;
+  cursor: pointer;
 }
 
 .film-card {
@@ -216,6 +217,7 @@ hr {
 
 .info-text {
   flex: 1;
+  cursor: pointer;
 }
 
 .film-card h3 {
