@@ -4,16 +4,14 @@ import { getPosterWithFallback } from "./tmdb.js";
 const wikidataUrl = "https://query.wikidata.org/sparql";
 const client = new SparqlClient(wikidataUrl);
 
+/**
+ * Fast search that only fetches minimal data for display
+ */
 export async function searchMoviesOnWikidata(term) {
   const query = `
     SELECT DISTINCT ?item ?itemLabel ?itemDescription ?date ?image 
                     ?director ?directorLabel 
-                    ?genre ?genreLabel 
-                    ?screenwriter 
-                    ?country 
-                    ?language 
-                    ?actor ?actorLabel 
-                    ?mainSubject WHERE {    
+                    ?genre ?genreLabel WHERE {    
 
       # MOTEUR DE RECHERCHE
       SERVICE wikibase:mwapi {
@@ -24,6 +22,69 @@ export async function searchMoviesOnWikidata(term) {
           ?item wikibase:apiOutputItem mwapi:item .
       }
 
+      ?item wdt:P31 wd:Q11424 .
+      
+      OPTIONAL { ?item wdt:P577 ?date . }
+      OPTIONAL { ?item wdt:P18 ?image . }
+      OPTIONAL { ?item wdt:P57 ?director . }
+      OPTIONAL { ?item wdt:P136 ?genre . }
+
+      # Le service remplit automatiquement ?itemDescription grâce à la langue
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "fr,en". }
+    }
+  `;
+
+  const rawData = await client.query(query);
+  const bindings = rawData?.results?.bindings;
+
+  if (!bindings || bindings.length === 0) {
+    return [];
+  }
+  
+  const moviesMap = processMinimalData(bindings);
+
+  const moviesLibrary = Array.from(moviesMap.values()).map((m) => ({
+    id: m.id,
+    title: m.title,
+    description: m.description,
+    year: m.year,
+    image: m.image,
+    directorId: m.directorId,
+    director: m.directorName,
+    genresLabels: Array.from(m.genresLabels)
+  }));
+  
+  // Fetch TMDB posters for all movies in parallel
+  const moviesWithPosters = await Promise.all(
+    moviesLibrary.map(async (movie) => {
+      const posterUrl = await getPosterWithFallback(movie.title, movie.year, movie.image);
+      return {
+        ...movie,
+        image: posterUrl
+      };
+    })
+  );
+
+  return moviesWithPosters;
+}
+
+/**
+ * Fetch complete movie details (called when adding to saved movies)
+ */
+export async function getMovieFullDetails(movieId) {
+  console.log("Fetching full details for movie ID:", movieId);
+  const query = `
+    SELECT DISTINCT ?item ?itemLabel ?itemDescription ?date ?image 
+                    ?director ?directorLabel 
+                    ?genre ?genreLabel 
+                    ?screenwriter 
+                    ?country 
+                    ?language 
+                    ?actor ?actorLabel 
+                    ?mainSubject WHERE {    
+
+      BIND(wd:${movieId} as ?item)
+      
       ?item wdt:P31 wd:Q11424 .
       
       OPTIONAL { ?item wdt:P577 ?date . }
@@ -49,47 +110,75 @@ export async function searchMoviesOnWikidata(term) {
   const bindings = rawData?.results?.bindings;
 
   if (!bindings || bindings.length === 0) {
-    return [];
+    return null;
   }
   
   const moviesMap = processData(bindings);
-
-  const moviesLibrary = Array.from(moviesMap.values()).map((m) => ({
-    id: m.id,
-    title: m.title,
-    // 3. AJOUT AU RETOUR FINAL
-    description: m.description,
-    year: m.year,
-    image: m.image,
-    
-    directorId: m.directorId,
-    director: m.directorName,
-    
-    screenwriterIds: Array.from(m.screenwriterIds),
-    countryIds: Array.from(m.countryIds),
-    languageIds: Array.from(m.languageIds),
-    mainSubjectIds: Array.from(m.mainSubjectIds),
-
-    genres: Array.from(m.genresIds),
-    genresLabels: Array.from(m.genresLabels) ,
-
-    cast: Array.from(m.cast.keys())
-  }));
+  const movieData = moviesMap.get(movieId);
   
-  // Fetch TMDB posters for all movies in parallel
-  const moviesWithPosters = await Promise.all(
-    moviesLibrary.map(async (movie) => {
-      const posterUrl = await getPosterWithFallback(movie.title, movie.year, movie.image);
-      return {
-        ...movie,
-        image: posterUrl
-      };
-    })
-  );
+  if (!movieData) {
+    return null;
+  }
 
-  return moviesWithPosters;
+  return {
+    id: movieData.id,
+    title: movieData.title,
+    description: movieData.description,
+    year: movieData.year,
+    image: movieData.image,
+    
+    directorId: movieData.directorId,
+    director: movieData.directorName,
+    
+    screenwriterIds: Array.from(movieData.screenwriterIds),
+    countryIds: Array.from(movieData.countryIds),
+    languageIds: Array.from(movieData.languageIds),
+    mainSubjectIds: Array.from(movieData.mainSubjectIds),
+
+    genres: Array.from(movieData.genresIds),
+    genresLabels: Array.from(movieData.genresLabels),
+
+    cast: Array.from(movieData.cast.keys())
+  };
 }
 
+/**
+ * Process minimal data for fast search results
+ */
+function processMinimalData(bindings) {
+  const moviesMap = new Map();
+
+  bindings.forEach((bind) => {
+    const qid = bind.item.value.split("/").pop();
+
+    if (!moviesMap.has(qid)) {
+      moviesMap.set(qid, {
+        id: qid,
+        title: bind.itemLabel ? bind.itemLabel.value : "Titre Inconnu",
+        description: bind.itemDescription ? bind.itemDescription.value : "",
+        image: bind.image ? bind.image.value : null,
+        year: bind.date ? parseInt(bind.date.value.substring(0, 4)) : "N/C",
+        
+        directorId: bind.director ? bind.director.value.split("/").pop() : null,
+        directorName: bind.directorLabel ? bind.directorLabel.value : "Inconnu",
+        
+        genresLabels: new Set()
+      });
+    }
+
+    const film = moviesMap.get(qid);
+
+    if (bind.genre && bind.genreLabel) {
+      film.genresLabels.add(bind.genreLabel.value);
+    }
+  });
+
+  return moviesMap;
+}
+
+/**
+ * Process full data for complete movie details
+ */
 function processData(bindings) {
   const moviesMap = new Map();
 

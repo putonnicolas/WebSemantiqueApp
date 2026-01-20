@@ -1,5 +1,5 @@
 import "../style.css";
-import { searchMoviesOnWikidata } from "./searchFilms.js";
+import { searchMoviesOnWikidata, getMovieFullDetails } from "./searchFilms.js";
 
 let currentSearchResults = [];
 let savedMovies = JSON.parse(sessionStorage.getItem("moviesUsed")) || [];
@@ -86,25 +86,49 @@ try {
   }
 }
 
-window.ajouterAuxMoviesUsed = function (index) {
+window.ajouterAuxMoviesUsed = async function (index) {
   if (savedMovies.length >= 5) {
     alert("Ta liste est complète ! Enlève un film pour en ajouter un nouveau.");
     return;
   }
 
-  const movieToAdd = currentSearchResults[index];
+  const movieBasic = currentSearchResults[index];
 
   const existeDeja = savedMovies.some(
-    (m) => m.title === movieToAdd.title && m.year === movieToAdd.year
+    (m) => m.title === movieBasic.title && m.year === movieBasic.year
   );
   if (existeDeja) {
     alert("Ce film est déjà dans ta liste !");
     return;
   }
 
-  savedMovies.push(movieToAdd);
-  sessionStorage.setItem("moviesUsed", JSON.stringify(savedMovies));
-  updateSavedListUI();
+  // Fetch full details before adding
+  try {
+    const movieFull = await getMovieFullDetails(movieBasic.id);
+    
+    if (movieFull) {
+      // Keep the poster from the basic search result
+      movieFull.image = movieBasic.image;
+      savedMovies.push(movieFull);
+    } else {
+      // Fallback: use basic data if full details fail
+      savedMovies.push({
+        ...movieBasic,
+        genres: [],
+        cast: [],
+        screenwriterIds: [],
+        countryIds: [],
+        languageIds: [],
+        mainSubjectIds: []
+      });
+    }
+    
+    sessionStorage.setItem("moviesUsed", JSON.stringify(savedMovies));
+    updateSavedListUI();
+  } catch (error) {
+    console.error("Error fetching full movie details:", error);
+    alert("Erreur lors de l'ajout du film. Veuillez réessayer.");
+  }
 };
 
 window.supprimerFilm = function (index) {
