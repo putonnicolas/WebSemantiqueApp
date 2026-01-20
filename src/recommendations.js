@@ -5,8 +5,6 @@ const WEIGHTS = {
   DIRECTOR: 15,
   SCREENWRITER: 10,
   CAST: 15,
-  COUNTRY: 5,
-  LANGUAGE: 5,
 };
 
 let finalResults = [];
@@ -90,98 +88,177 @@ async function getOptimizedRecommendations() {
   const genList = [...criteria.genres].map((g) => `wd:${g}`).join(" ");
   const dirList = [...criteria.directors].map((d) => `wd:${d}`).join(" ");
   const actList = [...criteria.actors].map((a) => `wd:${a}`).join(" ");
+  const scrList = [...criteria.screenwriters].map((s) => `wd:${s}`).join(" ");
   const excList = [...criteria.excluded].map((e) => `wd:${e}`).join(" ");
 
-  const query = `
-SELECT DISTINCT ?movie ?movieLabel ?movieDescription ?year ?image 
-                ?director ?directorLabel ?dirId 
-                ?genre ?genreLabel ?genId 
-                ?screenwriter ?scrId 
-                ?country ?cntId 
-                ?language ?lngId 
-                ?actor ?actorLabel ?actId 
-WHERE {
-  {
-    # --- SOUS-REQUÊTE : On sélectionne d'abord les 50 films uniques ---
-    SELECT DISTINCT ?movie ?year WHERE {
-      {
-        ${genList ? `{ ?movie wdt:P136 ?genSearch. VALUES ?genSearch { ${genList} } }` : ""}
-        ${genList && dirList ? "UNION" : ""}
-        ${dirList ? `{ ?movie wdt:P57 ?dirSearch. VALUES ?dirSearch { ${dirList} } }` : ""}
-      }
-      
+  console.log("🎬 Multi-tier query approach: fetching candidates by tier...");
+
+  // Helper function to build a candidate query
+  const buildCandidateQuery = (matchClause, limit) => `
+    SELECT DISTINCT ?movie WHERE {
+      ${matchClause}
       ?movie wdt:P31 wd:Q11424;
              wdt:P577 ?date.
       BIND(YEAR(?date) AS ?year)
       FILTER(?year >= ${minYear} && ?year <= ${maxYear})
-
-      # Exclusion des films déjà enregistrés
       FILTER NOT EXISTS { VALUES ?err { ${excList || "wd:Q0"} } FILTER(?movie = ?err) }
     }
-    LIMIT 50
-  }
+    LIMIT ${limit}
+  `;
+
+  // Collect movie IDs from each tier
+  const candidateMovieIds = new Set();
+
+  try {
+    // Tier 1: Directors (150 movies max) - strongest signal
+    if (dirList) {
+      console.log("  ⭐ Tier 1: Fetching from directors...");
+      const dirQuery = buildCandidateQuery(
+        `?movie wdt:P57 ?dir. VALUES ?dir { ${dirList} }`,
+        150
+      );
+      const dirResults = await client.query(dirQuery);
+      const dirBindings = dirResults?.results?.bindings || dirResults || [];
+      dirBindings.forEach(b => candidateMovieIds.add(b.movie.value.split("/").pop()));
+      console.log(`    ✓ Found ${dirBindings.length} from directors`);
+    }
+
+    // Tier 2: Screenwriters (100 movies max) - strong thematic signal
+    if (scrList) {
+      console.log("  📝 Tier 2: Fetching from screenwriters...");
+      const scrQuery = buildCandidateQuery(
+        `?movie wdt:P58 ?scr. VALUES ?scr { ${scrList} }`,
+        100
+      );
+      const scrResults = await client.query(scrQuery);
+      const scrBindings = scrResults?.results?.bindings || scrResults || [];
+      scrBindings.forEach(b => candidateMovieIds.add(b.movie.value.split("/").pop()));
+      console.log(`    ✓ Found ${scrBindings.length} from screenwriters`);
+    }
+
+    // Tier 3: Actors (80 movies max) - decent signal
+    if (actList) {
+      console.log("  🎭 Tier 3: Fetching from actors...");
+      const actQuery = buildCandidateQuery(
+        `?movie wdt:P161 ?act. VALUES ?act { ${actList} }`,
+        80
+      );
+      const actResults = await client.query(actQuery);
+      const actBindings = actResults?.results?.bindings || actResults || [];
+      actBindings.forEach(b => candidateMovieIds.add(b.movie.value.split("/").pop()));
+      console.log(`    ✓ Found ${actBindings.length} from actors`);
+    }
+
+    // Tier 4: Genres with 2+ matches (50 movies max) - weak signal, limited volume
+    if (genList && criteria.genres.size >= 2) {
+      console.log("  🎨 Tier 4: Fetching multi-genre matches...");
+      const genQuery = `
+        SELECT DISTINCT ?movie (COUNT(DISTINCT ?genre) as ?genreCount) WHERE {
+          ?movie wdt:P136 ?genre. VALUES ?genre { ${genList} }
+          ?movie wdt:P31 wd:Q11424;
+                 wdt:P577 ?date.
+          BIND(YEAR(?date) AS ?year)
+          FILTER(?year >= ${minYear} && ?year <= ${maxYear})
+          FILTER NOT EXISTS { VALUES ?err { ${excList || "wd:Q0"} } FILTER(?movie = ?err) }
+        }
+        GROUP BY ?movie
+        HAVING (COUNT(DISTINCT ?genre) >= 2)
+        LIMIT 50
+      `;
+      const genResults = await client.query(genQuery);
+      const genBindings = genResults?.results?.bindings || genResults || [];
+      genBindings.forEach(b => candidateMovieIds.add(b.movie.value.split("/").pop()));
+      console.log(`    ✓ Found ${genBindings.length} multi-genre matches`);
+    }
+
+    console.log(`\n🎯 Total unique candidates: ${candidateMovieIds.size}`);
+
+    if (candidateMovieIds.size === 0) {
+      console.log("Aucun résultat trouvé.");
+      if (loadingMsg) loadingMsg.innerHTML = "Pas de résultats correspondants.";
+      return [];
+    }
+
+    // Fetch details in batches to avoid timeouts
+    const BATCH_SIZE = 10;
+    const allMovieIds = Array.from(candidateMovieIds);
+    const allBindings = [];
+
+    console.log(`📦 Fetching details for ${allMovieIds.length} candidates in batches of ${BATCH_SIZE}...`);
+
+    for (let i = 0; i < allMovieIds.length; i += BATCH_SIZE) {
+      const batch = allMovieIds.slice(i, i + BATCH_SIZE);
+      const movieIdList = batch.map(id => `wd:${id}`).join(" ");
+      
+      const detailsQuery = `
+SELECT DISTINCT ?movie ?movieLabel ?movieDescription ?year ?image 
+                ?director ?directorLabel ?dirId 
+                ?genre ?genreLabel ?genId 
+                ?screenwriter ?scrId 
+                ?actor ?actorLabel ?actId 
+WHERE {
+  VALUES ?movie { ${movieIdList} }
   
-  # --- RÉCUPÉRATION DES DÉTAILS (Uniquement pour les films sélectionnés au-dessus) ---
+  ?movie wdt:P31 wd:Q11424;
+         wdt:P577 ?date.
+  BIND(YEAR(?date) AS ?year)
   
   OPTIONAL { ?movie wdt:P18 ?image. }
   
-  # Réalisateur
   OPTIONAL { 
     ?movie wdt:P57 ?director. 
     BIND(STRAFTER(STR(?director), "entity/") AS ?dirId) 
   }
   
-  # Genre
   OPTIONAL { 
     ?movie wdt:P136 ?genre. 
     BIND(STRAFTER(STR(?genre), "entity/") AS ?genId) 
   }
   
-  # Scénariste
   OPTIONAL { 
     ?movie wdt:P58 ?screenwriter. 
     BIND(STRAFTER(STR(?screenwriter), "entity/") AS ?scrId) 
   }
   
-  # Pays
   OPTIONAL { 
     ?movie wdt:P495 ?country. 
     BIND(STRAFTER(STR(?country), "entity/") AS ?cntId) 
   }
   
-  # Langue
   OPTIONAL { 
     ?movie wdt:P364 ?language. 
     BIND(STRAFTER(STR(?language), "entity/") AS ?lngId) 
   }
   
-  # Acteurs (On filtre par ceux du profil pour accélérer, mais sans bloquer)
   OPTIONAL { 
     ?movie wdt:P161 ?actor. 
-    ${actList ? `VALUES ?actor { ${actList} }` : ""} 
     BIND(STRAFTER(STR(?actor), "entity/") AS ?actId) 
   }
 
   SERVICE wikibase:label { bd:serviceParam wikibase:language "fr,en". }
 }
 ORDER BY DESC(?year)
-LIMIT 500`;
+`;
 
-  console.log("Requête générée:\n", query);
+      try {
+        const batchData = await client.query(detailsQuery);
+        const batchBindings = batchData?.results?.bindings || batchData || [];
+        allBindings.push(...batchBindings);
+        console.log(`  ✓ Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(allMovieIds.length / BATCH_SIZE)}: ${batchBindings.length} results`);
+      } catch (err) {
+        console.warn(`  ⚠️  Batch ${Math.floor(i / BATCH_SIZE) + 1} failed, skipping:`, err.message);
+      }
+    }
 
-  try {
-    const rawData = await client.query(query);
-    console.log("Données brutes reçues:", rawData);
+    console.log(`📊 Total results fetched: ${allBindings.length}`);
 
-    const bindings = rawData?.results?.bindings || rawData;
-
-    if (!bindings || bindings.length === 0) {
-      console.log("Aucun résultat trouvé.");
+    if (allBindings.length === 0) {
+      console.log("Aucun résultat trouvé après récupération des détails.");
       if (loadingMsg) loadingMsg.innerHTML = "Pas de résultats correspondants.";
       return [];
     }
 
-    const moviesMap = processData(bindings);
+    const moviesMap = processData(allBindings);
 
     finalResults = Array.from(moviesMap.values()).map((movie) => {
       let score = 0;
@@ -204,20 +281,6 @@ LIMIT 500`;
         if (criteria.screenwriters.has(s)) {
           score += WEIGHTS.SCREENWRITER;
           reasons.add("scénariste");
-        }
-      });
-
-      movie.countryIds.forEach((c) => {
-        if (criteria.countries.has(c)) {
-          score += WEIGHTS.COUNTRY;
-          reasons.add("pays");
-        }
-      });
-
-      movie.languageIds.forEach((l) => {
-        if (criteria.languages.has(l)) {
-          score += WEIGHTS.LANGUAGE;
-          reasons.add("langue");
         }
       });
 
