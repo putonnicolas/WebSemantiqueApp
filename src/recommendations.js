@@ -53,28 +53,27 @@ async function getOptimizedRecommendations() {
     ),
     genres: new Set(
       savedMovies
-        .flatMap((m) => m.genresIds || [])
+        .flatMap((m) => m.genres || [])
         .filter((id) => id && id !== "undefined"),
     ),
     screenwriters: new Set(
       savedMovies
-        .map((m) => m.screenwriterId)
+        .flatMap((m) => m.screenwriterIds || [])
         .filter((id) => id && id !== "undefined"),
     ),
     countries: new Set(
       savedMovies
-        .map((m) => m.countryId)
+        .flatMap((m) => m.countryIds || [])
         .filter((id) => id && id !== "undefined"),
     ),
     languages: new Set(
       savedMovies
-        .map((m) => m.languageId)
+        .flatMap((m) => m.languageIds || [])
         .filter((id) => id && id !== "undefined"),
     ),
     actors: new Set(
       savedMovies
         .flatMap((m) => m.cast || [])
-        .map((actor) => actor.id)
         .filter((id) => id && id !== "undefined"),
     ),
     excluded: new Set(savedMovies.map((m) => m.id).filter((id) => id)),
@@ -90,6 +89,20 @@ async function getOptimizedRecommendations() {
   const actList = [...criteria.actors].map((a) => `wd:${a}`).join(" ");
   const scrList = [...criteria.screenwriters].map((s) => `wd:${s}`).join(" ");
   const excList = [...criteria.excluded].map((e) => `wd:${e}`).join(" ");
+
+  console.log("📋 Criteria sizes:", {
+    directors: criteria.directors.size,
+    genres: criteria.genres.size,
+    screenwriters: criteria.screenwriters.size,
+    actors: criteria.actors.size,
+  });
+  
+  console.log("📋 Lists prepared:", {
+    dirList: dirList ? `${dirList.substring(0, 50)}...` : "EMPTY",
+    genList: genList ? `${genList.substring(0, 50)}...` : "EMPTY",
+    actList: actList ? `${actList.substring(0, 50)}...` : "EMPTY",
+    scrList: scrList ? `${scrList.substring(0, 50)}...` : "EMPTY",
+  });
 
   console.log("🎬 Multi-tier query approach: fetching candidates by tier...");
 
@@ -121,6 +134,8 @@ async function getOptimizedRecommendations() {
       const dirBindings = dirResults?.results?.bindings || dirResults || [];
       dirBindings.forEach(b => candidateMovieIds.add(b.movie.value.split("/").pop()));
       console.log(`    ✓ Found ${dirBindings.length} from directors`);
+    } else {
+      console.log("  ⭕ Tier 1 SKIPPED: No directors in criteria");
     }
 
     // Tier 2: Screenwriters (100 movies max) - strong thematic signal
@@ -134,6 +149,8 @@ async function getOptimizedRecommendations() {
       const scrBindings = scrResults?.results?.bindings || scrResults || [];
       scrBindings.forEach(b => candidateMovieIds.add(b.movie.value.split("/").pop()));
       console.log(`    ✓ Found ${scrBindings.length} from screenwriters`);
+    } else {
+      console.log("  ⭕ Tier 2 SKIPPED: No screenwriters in criteria");
     }
 
     // Tier 3: Actors (80 movies max) - decent signal
@@ -147,6 +164,8 @@ async function getOptimizedRecommendations() {
       const actBindings = actResults?.results?.bindings || actResults || [];
       actBindings.forEach(b => candidateMovieIds.add(b.movie.value.split("/").pop()));
       console.log(`    ✓ Found ${actBindings.length} from actors`);
+    } else {
+      console.log("  ⭕ Tier 3 SKIPPED: No actors in criteria");
     }
 
     // Tier 4: Genres with 2+ matches (50 movies max) - weak signal, limited volume
@@ -169,6 +188,12 @@ async function getOptimizedRecommendations() {
       const genBindings = genResults?.results?.bindings || genResults || [];
       genBindings.forEach(b => candidateMovieIds.add(b.movie.value.split("/").pop()));
       console.log(`    ✓ Found ${genBindings.length} multi-genre matches`);
+    } else {
+      if (!genList) {
+        console.log("  ⭕ Tier 4 SKIPPED: No genres in criteria");
+      } else if (criteria.genres.size < 2) {
+        console.log(`  ⭕ Tier 4 SKIPPED: Only ${criteria.genres.size} genre(s), need at least 2`);
+      }
     }
 
     console.log(`\n🎯 Total unique candidates: ${candidateMovieIds.size}`);
