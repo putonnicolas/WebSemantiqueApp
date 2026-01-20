@@ -102,6 +102,10 @@ window.ajouterAuxMoviesUsed = async function (index) {
     return;
   }
 
+  // Show loading state in the next available slot
+  const nextSlot = savedMovies.length;
+  showLoadingState(nextSlot);
+
   // Fetch full details before adding
   try {
     const movieFull = await getMovieFullDetails(movieBasic.id);
@@ -127,6 +131,8 @@ window.ajouterAuxMoviesUsed = async function (index) {
     updateSavedListUI();
   } catch (error) {
     console.error("Error fetching full movie details:", error);
+    // Clear loading state on error
+    clearLoadingState(nextSlot);
     alert("Erreur lors de l'ajout du film. Veuillez réessayer.");
   }
 };
@@ -136,6 +142,20 @@ window.supprimerFilm = function (index) {
   sessionStorage.setItem("moviesUsed", JSON.stringify(savedMovies));
   updateSavedListUI();
 };
+
+function showLoadingState(slotIndex) {
+  const placeholders = document.querySelectorAll(".movie-placeholder");
+  if (slotIndex < placeholders.length) {
+    placeholders[slotIndex].classList.add("loading");
+  }
+}
+
+function clearLoadingState(slotIndex) {
+  const placeholders = document.querySelectorAll(".movie-placeholder");
+  if (slotIndex < placeholders.length) {
+    placeholders[slotIndex].classList.remove("loading");
+  }
+}
 
 function updateSavedListUI() {
   const placeholders = document.querySelectorAll(".movie-placeholder");

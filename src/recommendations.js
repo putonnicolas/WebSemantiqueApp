@@ -193,34 +193,6 @@ async function getOptimizedRecommendations() {
       console.log("  ⭕ Tier 3 SKIPPED: No actors in criteria");
     }
 
-    // Tier 4: Genres with 2+ matches (50 movies max) - weak signal, limited volume
-    if (genList && criteria.genres.size >= 2) {
-      console.log("  🎨 Tier 4: Fetching multi-genre matches...");
-      const genQuery = `
-        SELECT DISTINCT ?movie (COUNT(DISTINCT ?genre) as ?genreCount) WHERE {
-          ?movie wdt:P136 ?genre. VALUES ?genre { ${genList} }
-          ?movie wdt:P31 wd:Q11424;
-                 wdt:P577 ?date.
-          BIND(YEAR(?date) AS ?year)
-          FILTER(?year >= ${minYear} && ?year <= ${maxYear})
-          FILTER NOT EXISTS { VALUES ?err { ${excList || "wd:Q0"} } FILTER(?movie = ?err) }
-        }
-        GROUP BY ?movie
-        HAVING (COUNT(DISTINCT ?genre) >= 2)
-        LIMIT 50
-      `;
-      const genResults = await client.query(genQuery);
-      const genBindings = genResults?.results?.bindings || genResults || [];
-      genBindings.forEach(b => candidateMovieIds.add(b.movie.value.split("/").pop()));
-      console.log(`    ✓ Found ${genBindings.length} multi-genre matches`);
-    } else {
-      if (!genList) {
-        console.log("  ⭕ Tier 4 SKIPPED: No genres in criteria");
-      } else if (criteria.genres.size < 2) {
-        console.log(`  ⭕ Tier 4 SKIPPED: Only ${criteria.genres.size} genre(s), need at least 2`);
-      }
-    }
-
     console.log(`\n🎯 Total unique candidates: ${candidateMovieIds.size}`);
 
     if (candidateMovieIds.size === 0) {
