@@ -1,4 +1,5 @@
 import { SparqlClient } from "./SparqlClient.js";
+import { getPosterWithFallback } from "./tmdb.js";
 
 const WEIGHTS = {
   GENRE: 10,
@@ -333,7 +334,7 @@ ORDER BY DESC(?year)
 
     const moviesMap = processData(allBindings);
 
-    finalResults = Array.from(moviesMap.values()).map((movie) => {
+    let finalResults = Array.from(moviesMap.values()).map((movie) => {
       let score = 0;
       let reasons = new Set();
 
@@ -379,6 +380,17 @@ ORDER BY DESC(?year)
         recommendation: { score, reasons: Array.from(reasons) },
       };
     });
+
+    // Fetch TMDB posters for all movies in parallel
+    finalResults = await Promise.all(
+      finalResults.map(async (movie) => {
+        const posterUrl = await getPosterWithFallback(movie.title, movie.year, movie.image);
+        return {
+          ...movie,
+          image: posterUrl
+        };
+      })
+    );
 
     finalResults.sort(
       (a, b) =>

@@ -1,4 +1,5 @@
 import { SparqlClient } from "./SparqlClient.js";
+import { getPosterWithFallback } from "./tmdb.js";
 
 const wikidataUrl = "https://query.wikidata.org/sparql";
 const client = new SparqlClient(wikidataUrl);
@@ -75,7 +76,18 @@ export async function searchMoviesOnWikidata(term) {
     cast: Array.from(m.cast.keys())
   }));
   
-  return moviesLibrary;
+  // Fetch TMDB posters for all movies in parallel
+  const moviesWithPosters = await Promise.all(
+    moviesLibrary.map(async (movie) => {
+      const posterUrl = await getPosterWithFallback(movie.title, movie.year, movie.image);
+      return {
+        ...movie,
+        image: posterUrl
+      };
+    })
+  );
+
+  return moviesWithPosters;
 }
 
 function processData(bindings) {
