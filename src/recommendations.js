@@ -4,7 +4,7 @@ const WEIGHTS = {
   GENRE: 10,
   DIRECTOR: 15,
   SCREENWRITER: 10,
-  CAST: 8,
+  CAST: 15,
   COUNTRY: 5,
   LANGUAGE: 5,
 };
@@ -55,27 +55,28 @@ async function getOptimizedRecommendations() {
     ),
     genres: new Set(
       savedMovies
-        .flatMap((m) => m.genres || [])
+        .flatMap((m) => m.genresIds || [])
         .filter((id) => id && id !== "undefined"),
     ),
     screenwriters: new Set(
       savedMovies
-        .flatMap((m) => m.screenwriterIds || [])
+        .map((m) => m.screenwriterId)
         .filter((id) => id && id !== "undefined"),
     ),
     countries: new Set(
       savedMovies
-        .flatMap((m) => m.countryIds || [])
+        .map((m) => m.countryId)
         .filter((id) => id && id !== "undefined"),
     ),
     languages: new Set(
       savedMovies
-        .flatMap((m) => m.languageIds || [])
+        .map((m) => m.languageId)
         .filter((id) => id && id !== "undefined"),
     ),
     actors: new Set(
       savedMovies
         .flatMap((m) => m.cast || [])
+        .map((actor) => actor.id)
         .filter((id) => id && id !== "undefined"),
     ),
     excluded: new Set(savedMovies.map((m) => m.id).filter((id) => id)),
