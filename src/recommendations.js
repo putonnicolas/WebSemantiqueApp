@@ -41,6 +41,16 @@ async function getOptimizedRecommendations() {
     loadingMsg.innerHTML =
       "Recherche de films que vous pourriez aimer en cours...";
   }
+  
+  // Show and reset progress bar
+  const progressContainer = document.getElementById("progressContainer");
+  const progressFill = document.getElementById("progressFill");
+  const progressText = document.getElementById("progressText");
+  if (progressContainer) {
+    progressContainer.style.display = "block";
+    if (progressFill) progressFill.style.width = "0%";
+    if (progressText) progressText.textContent = "0%";
+  }
 
   console.log("Films source:", SELECTED_MOVIES);
 
@@ -221,11 +231,13 @@ async function getOptimizedRecommendations() {
 
     // Create all batch promises
     const batchPromises = [];
+    const totalBatches = Math.ceil(allMovieIds.length / BATCH_SIZE);
+    let completedBatches = 0;
+    
     for (let i = 0; i < allMovieIds.length; i += BATCH_SIZE) {
       const batch = allMovieIds.slice(i, i + BATCH_SIZE);
       const movieIdList = batch.map(id => `wd:${id}`).join(" ");
       const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(allMovieIds.length / BATCH_SIZE);
       
       const detailsQuery = `
 SELECT DISTINCT ?movie ?movieLabel ?movieDescription ?year ?image 
@@ -286,6 +298,13 @@ ORDER BY DESC(?year)
         .then(batchData => {
           const batchBindings = batchData?.results?.bindings || batchData || [];
           console.log(`  ✓ Batch ${batchNumber}/${totalBatches}: ${batchBindings.length} results`);
+          
+          // Update progress bar
+          completedBatches++;
+          const progress = Math.round((completedBatches / totalBatches) * 100);
+          if (progressFill) progressFill.style.width = `${progress}%`;
+          if (progressText) progressText.textContent = `${progress}%`;
+          
           return batchBindings;
         });
 
@@ -316,7 +335,6 @@ ORDER BY DESC(?year)
           reasons.add("genre");
         }
       });
-      console.log(movie);
 
       if (criteria.directors.has(movie.directorId)) {
         score += WEIGHTS.DIRECTOR;
@@ -369,11 +387,13 @@ ORDER BY DESC(?year)
     console.log("Résultats finaux:", finalResults);
 
     if (loadingMsg) loadingMsg.style.display = "none";
+    if (progressContainer) progressContainer.style.display = "none";
     afficherFilms(finalResults);
   } catch (error) {
     console.error("ERREUR FATALE:", error);
     if (loadingMsg)
       loadingMsg.innerHTML = "Erreur technique lors de la recherche.";
+    if (progressContainer) progressContainer.style.display = "none";
   }
 }
 

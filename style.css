@@ -388,3 +388,36 @@ a:visited {
 #pageActuel {
   border: 1px dashed  #444;
 }
+
+/* Progress Bar Styles */
+#progressContainer {
+  width: 100%;
+  max-width: 600px;
+  margin: 1rem auto;
+  text-align: center;
+}
+
+#progressBar {
+  width: 100%;
+  height: 24px;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+#progressFill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #646cff, #535bf2);
+  transition: width 0.3s ease;
+  border-radius: 12px;
+}
+
+#progressText {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
