@@ -213,7 +213,7 @@ async function getOptimizedRecommendations() {
 
     // Fetch details in batches to avoid timeouts
     const BATCH_SIZE = 10;
-    const BATCH_TIMEOUT = 10000; // 10 seconds
+    const BATCH_TIMEOUT = 20000; // 20 seconds
     const allMovieIds = Array.from(candidateMovieIds);
 
     console.log(`📦 Fetching details for ${allMovieIds.length} candidates in batches of ${BATCH_SIZE}...`);
