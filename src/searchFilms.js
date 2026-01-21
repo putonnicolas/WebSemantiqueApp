@@ -9,7 +9,7 @@ const client = new SparqlClient(wikidataUrl);
  */
 export async function searchMoviesOnWikidata(term) {
   const query = `
-    SELECT DISTINCT ?item ?itemLabel ?itemDescription ?date ?image 
+    SELECT DISTINCT ?item ?itemLabel ?itemDescription ?date
                     ?director ?directorLabel 
                     ?genre ?genreLabel WHERE {    
 
@@ -25,7 +25,6 @@ export async function searchMoviesOnWikidata(term) {
       ?item wdt:P31 wd:Q11424 .
       
       OPTIONAL { ?item wdt:P577 ?date . }
-      OPTIONAL { ?item wdt:P18 ?image . }
       OPTIONAL { ?item wdt:P57 ?director . }
       OPTIONAL { ?item wdt:P136 ?genre . }
 

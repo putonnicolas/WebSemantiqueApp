@@ -126,6 +126,9 @@ async function getOptimizedRecommendations() {
 
   console.log("🎬 Multi-tier query approach: fetching candidates by tier...");
 
+  // Convert space-separated list to comma-separated for SPARQL NOT IN
+  const excListForFilter = excList ? excList.replace(/ /g, ", ") : "";
+
   // Helper function to build a candidate query
   const buildCandidateQuery = (matchClause, limit) => `
     SELECT DISTINCT ?movie WHERE {
@@ -134,7 +137,7 @@ async function getOptimizedRecommendations() {
              wdt:P577 ?date.
       BIND(YEAR(?date) AS ?year)
       FILTER(?year >= ${minYear} && ?year <= ${maxYear})
-      FILTER NOT EXISTS { VALUES ?err { ${excList || "wd:Q0"} } FILTER(?movie = ?err) }
+      ${excListForFilter ? `FILTER (?movie NOT IN (${excListForFilter}))` : ""}
     }
     LIMIT ${limit}
   `;
