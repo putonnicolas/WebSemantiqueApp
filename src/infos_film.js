@@ -133,20 +133,47 @@ function generateRelationshipGraph(movieSelected) {
     elements.push({ data: { source: movieSelected.id, target: genreId } });
   });
 
-  // Ajouter tous les acteurs du film recommandé
-  if (movieSelected.actorsIds && movieSelected.actorsNames) {
-    movieSelected.actorsIds.slice(0, 5).forEach((actorId, index) => {
-      if (!elements.find(el => el.data.id === actorId)) {
-        const actorName = movieSelected.actorsNames[index] || "Acteur";
-        elements.push({ data: { id: actorId, label: actorName, type: "actor" } });
-      }
-      elements.push({ data: { source: movieSelected.id, target: actorId } });
-    });
-  }
+  // Étape 1 : Créer les 5 premiers acteurs du film recommandé
+  const actorIds = movieSelected.actorsIds || [];
+  const actorNames = movieSelected.actorsNames || [];
+  const createdActorIds = new Set();
+  
+  actorIds.slice(0, 5).forEach((actorId, index) => {
+    if (!elements.find(el => el.data.id === actorId)) {
+      const actorName = actorNames[index] || "Acteur";
+      elements.push({ data: { id: actorId, label: actorName, type: "actor" } });
+      createdActorIds.add(actorId);
+    }
+    elements.push({ data: { source: movieSelected.id, target: actorId } });
+  });
 
+  // Étape 2 : Trouver les acteurs communs avec les films passés
+  const commonActorsToAdd = new Set();
+  savedMovies.forEach((pastMovie) => {
+    const pastActorIds = pastMovie.actorsIds || pastMovie.cast || [];
+    const currentActorIds = movieSelected.actorsIds || [];
+    pastActorIds.forEach((actorId) => {
+      if (currentActorIds.includes(actorId) && !createdActorIds.has(actorId)) {
+        commonActorsToAdd.add(actorId);
+      }
+    });
+  });
+
+  // Étape 3 : Créer les nœuds pour les acteurs communs
+  commonActorsToAdd.forEach((actorId) => {
+    const index = actorIds.indexOf(actorId);
+    const actorName = index >= 0 ? actorNames[index] : "Acteur";
+    elements.push({ data: { id: actorId, label: actorName, type: "actor" } });
+    elements.push({ data: { source: movieSelected.id, target: actorId } });
+    createdActorIds.add(actorId);
+  });
+
+  // Étape 4 : Créer les films passés et leurs connexions
   savedMovies.forEach((pastMovie) => {
     const commonGenres = pastMovie.genresLabels?.filter((g) => movieSelected.genresLabels?.includes(g)) || [];
-    const commonActors = pastMovie.actorsIds?.filter((id) => movieSelected.actorsIds?.includes(id)) || [];
+
+    const pastActorIds = pastMovie.actorsIds || pastMovie.cast || [];
+    const commonActors = pastActorIds.filter((id) => createdActorIds.has(id));
     const sameDirector = pastMovie.directorId === movieSelected.directorId;
 
     if (sameDirector || commonGenres.length > 0 || commonActors.length > 0) {
@@ -157,7 +184,7 @@ function generateRelationshipGraph(movieSelected) {
       if (sameDirector) elements.push({ data: { source: pastMovie.id, target: movieSelected.directorId } });
       commonGenres.forEach((genre) => elements.push({ data: { source: pastMovie.id, target: `genre-${genre}` } }));
       
-      // Relier les films passés aux acteurs communs déjà créés
+      // Relier les films passés aux acteurs communs
       commonActors.forEach((actorId) => {
         elements.push({ data: { source: pastMovie.id, target: actorId } });
       });
