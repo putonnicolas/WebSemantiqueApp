@@ -152,6 +152,17 @@ function generateRelationshipGraph(movieSelected) {
     elements.push({ data: { source: movieSelected.id, target: genreId } });
   });
 
+  // Ajouter tous les acteurs du film recommandé
+  if (movieSelected.actorsIds && movieSelected.actorsNames) {
+    movieSelected.actorsIds.slice(0, 5).forEach((actorId, index) => {
+      if (!elements.find(el => el.data.id === actorId)) {
+        const actorName = movieSelected.actorsNames[index] || "Acteur";
+        elements.push({ data: { id: actorId, label: actorName, type: "actor" } });
+      }
+      elements.push({ data: { source: movieSelected.id, target: actorId } });
+    });
+  }
+
   savedMovies.forEach((pastMovie) => {
     const commonGenres =
       pastMovie.genresLabels?.filter((g) =>
@@ -173,24 +184,11 @@ function generateRelationshipGraph(movieSelected) {
         },
       });
 
-      if (sameDirector)
-        elements.push({
-          data: { source: pastMovie.id, target: movieSelected.directorId },
-        });
-      commonGenres.forEach((genre) =>
-        elements.push({
-          data: { source: pastMovie.id, target: `genre-${genre}` },
-        }),
-      );
-      commonActors.slice(0, 2).forEach((actorId) => {
-        if (!elements.find((el) => el.data.id === actorId)) {
-          elements.push({
-            data: { id: actorId, label: "Acteur", type: "actor" },
-          });
-          elements.push({
-            data: { source: movieSelected.id, target: actorId },
-          });
-        }
+      if (sameDirector) elements.push({ data: { source: pastMovie.id, target: movieSelected.directorId } });
+      commonGenres.forEach((genre) => elements.push({ data: { source: pastMovie.id, target: `genre-${genre}` } }));
+      
+      // Relier les films passés aux acteurs communs déjà créés
+      commonActors.forEach((actorId) => {
         elements.push({ data: { source: pastMovie.id, target: actorId } });
       });
     }
@@ -217,36 +215,12 @@ function generateRelationshipGraph(movieSelected) {
         },
       },
       { selector: "node[image]", style: { "background-image": "data(image)" } },
-      {
-        selector: 'node[type="main-movie"]',
-        style: {
-          width: "65px",
-          height: "65px",
-          "border-color": "#e74c3c",
-          "border-width": 4,
-        },
-      },
-      {
-        selector: 'node[type="past-movie"]',
-        style: { "border-color": "#3498db", "border-width": 3 },
-      },
-      {
-        selector: 'node[type="genre"]',
-        style: { "background-color": "#2ecc71", shape: "diamond" },
-      },
-      {
-        selector: 'node[type="director"]',
-        style: { "background-color": "#f1c40f", shape: "rectangle" },
-      },
-      {
-        selector: "edge",
-        style: {
-          width: 2,
-          "line-color": "#666",
-          "curve-style": "bezier",
-          opacity: 0.5,
-        },
-      },
+      { selector: 'node[type="main-movie"]', style: { width: "65px", height: "65px", "border-color": "#e74c3c", "border-width": 4 } },
+      { selector: 'node[type="past-movie"]', style: { "border-color": "#3498db", "border-width": 3 } },
+      { selector: 'node[type="genre"]', style: { "background-color": "#2ecc71", shape: "diamond" } },
+      { selector: 'node[type="director"]', style: { "background-color": "#f1c40f", shape: "rectangle" } },
+      { selector: 'node[type="actor"]', style: { "background-color": "#e67e22", shape: "ellipse" } },
+      { selector: "edge", style: { width: 2, "line-color": "#666", "curve-style": "bezier", opacity: 0.5 } }
     ],
     layout: { name: "cose", padding: 50, animate: true },
   });

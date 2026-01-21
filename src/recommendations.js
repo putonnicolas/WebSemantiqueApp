@@ -428,6 +428,7 @@ function processData(bindings) {
         countryIds: new Set(),
         languageIds: new Set(),
         actorsIds: new Set(),
+        actorsNames: new Set(),
         mainSubjectIds: new Set(),
       });
     }
@@ -441,7 +442,10 @@ function processData(bindings) {
     if (bind.scrId) film.screenwriterIds.add(bind.scrId.value);
     if (bind.cntId) film.countryIds.add(bind.cntId.value);
     if (bind.lngId) film.languageIds.add(bind.lngId.value);
-    if (bind.actId) film.actorsIds.add(bind.actId.value);
+    if (bind.actId) {
+      film.actorsIds.add(bind.actId.value);
+      if (bind.actorLabel) film.actorsNames.add(bind.actorLabel.value);
+    }
     if (bind.subjId) film.mainSubjectIds.add(bind.subjId.value);
   });
 
@@ -532,6 +536,7 @@ window.ouvrirDetails = function (index) {
     director: film.directorName,
     directorName: film.directorName,
     actorsIds: Array.from(film.actorsIds || []),
+    actorsNames: Array.from(film.actorsNames || []),
     cast: Array.from(film.actorsIds || []),
     countryIds: Array.from(film.countryIds || []),
     genresIds: Array.from(film.genresIds || []),
