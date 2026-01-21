@@ -6,7 +6,7 @@ const WEIGHTS = {
   DIRECTOR: 10,
   SCREENWRITER: 10,
   CAST: 15,
-  MAIN_SUBJECT: 200,
+  MAIN_SUBJECT: 20,
 };
 
 let finalResults = [];
