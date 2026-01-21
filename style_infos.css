@@ -28,8 +28,37 @@ body { margin: 0; min-height: 100vh; }
 }
 .menu-item:hover { background: #444; color: #fff; }
 
-#hero { flex: 1; overflow-y: auto; background-color: #1e1e1e; }
-.container { padding: 30px; display: flex; flex-direction: column; gap: 30px; }
+#hero {
+  flex: 1;
+  overflow-y: auto;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  position: relative;
+  z-index: 1;
+}
+
+#hero::before {
+  content: '';
+  position: fixed;
+  top: 0px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(30px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.container {
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  position: relative;
+  z-index: 2;
+}
 
 .moviesInfos { display: flex; gap: 40px; }
 .image_placeholder { width: 250px; flex-shrink: 0; }

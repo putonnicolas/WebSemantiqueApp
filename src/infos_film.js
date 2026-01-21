@@ -18,9 +18,14 @@ async function displayFilmDetails(movieSelected) {
   const synopsisDiv = document.getElementById("synopsisFilm");
   const yearDiv = document.getElementById("yearFilm");
   const summaryFilm = document.getElementById("summaryFilm");
+  const heroDiv = document.getElementById("hero");
 
   if (imageDiv && movieSelected.image) {
     imageDiv.innerHTML = `<img src="${movieSelected.image}" alt="${movieSelected.title}"/>`;
+  }
+
+  if (heroDiv && movieSelected.image) {
+    heroDiv.style.backgroundImage = `url('${movieSelected.image}')`;
   }
 
   titleDiv.innerHTML = `<p>${movieSelected.title}</p>`;
