@@ -34,7 +34,8 @@ body { margin: 0; min-height: 100vh; }
 .moviesInfos { display: flex; gap: 40px; }
 .image_placeholder { width: 250px; flex-shrink: 0; }
 .image_placeholder img { width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-#titleFilm { font-size: 4rem; font-weight: 800; margin: 0; }
+#titleFilm { font-size: 3rem; font-weight: 800; margin: 0; line-height: 1.1; }
+#titleFilm p { margin: 0; }
 
 /* --- AJUSTEMENT HAUTEUR MAXIMUM --- */
 #summaryFilm { 
@@ -99,3 +100,13 @@ body { margin: 0; min-height: 100vh; }
 }
 .spinner { width: 30px; height: 30px; border: 3px solid rgba(100,108,255,0.2); border-top-color: #646cff; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.genre-bubble {
+  background-color: #3b3b3b;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  border: 1px solid #555;
+  white-space: nowrap;
+}
