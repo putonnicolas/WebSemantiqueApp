@@ -1,5 +1,5 @@
 import { SparqlClient } from "./SparqlClient.js";
-import { getPosterWithFallback } from "./tmdb.js";
+import { getPosterWithFallback, getTmdbSynopsis } from "./tmdb.js";
 
 const WEIGHTS = {
   GENRE: 10,
@@ -371,13 +371,17 @@ ORDER BY DESC(?year)
       };
     });
 
-    // Fetch TMDB posters for all movies in parallel
+    // Fetch TMDB posters and synopses for all movies in parallel
     finalResults = await Promise.all(
       finalResults.map(async (movie) => {
-        const posterUrl = await getPosterWithFallback(movie.title, movie.year, movie.image);
+        const [posterUrl, synopsis] = await Promise.all([
+          getPosterWithFallback(movie.title, movie.year, movie.image),
+          getTmdbSynopsis(movie.title, movie.year)
+        ]);
         return {
           ...movie,
-          image: posterUrl
+          image: posterUrl,
+          tmdbSynopsis: synopsis || movie.description
         };
       })
     );
