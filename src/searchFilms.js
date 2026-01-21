@@ -119,6 +119,10 @@ export async function getMovieFullDetails(movieId) {
     return null;
   }
 
+  // Extraire les acteurs avec leurs noms dans le même ordre
+  const actorsIds = Array.from(movieData.cast.keys());
+  const actorsNames = actorsIds.map(id => movieData.cast.get(id));
+
   return {
     id: movieData.id,
     title: movieData.title,
@@ -128,6 +132,7 @@ export async function getMovieFullDetails(movieId) {
     
     directorId: movieData.directorId,
     director: movieData.directorName,
+    directorName: movieData.directorName,
     
     screenwriterIds: Array.from(movieData.screenwriterIds),
     countryIds: Array.from(movieData.countryIds),
@@ -137,7 +142,9 @@ export async function getMovieFullDetails(movieId) {
     genres: Array.from(movieData.genresIds),
     genresLabels: Array.from(movieData.genresLabels),
 
-    cast: Array.from(movieData.cast.keys())
+    actorsIds: actorsIds,
+    actorsNames: actorsNames,
+    cast: actorsIds // Pour compatibilité
   };
 }
 
