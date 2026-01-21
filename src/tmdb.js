@@ -11,7 +11,8 @@ const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500";
  */
 export async function getTmdbPoster(title, year = null) {
   try {
-    let query = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}`;
+    // Force French metadata so we pick the localized title/poster variant when available
+    let query = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&language=fr-FR&query=${encodeURIComponent(title)}`;
     
     // Add year filter if provided
     if (year) {
@@ -50,7 +51,7 @@ export async function getTmdbPoster(title, year = null) {
 export async function getTmdbMovieDetails(tmdbId) {
   try {
     const response = await fetch(
-      `${TMDB_BASE_URL}/movie/${tmdbId}?api_key=${TMDB_API_KEY}`
+      `${TMDB_BASE_URL}/movie/${tmdbId}?api_key=${TMDB_API_KEY}&language=fr-FR`
     );
 
     if (!response.ok) {
