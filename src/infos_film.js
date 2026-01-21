@@ -1,4 +1,5 @@
 import { explainRecommendation } from "./llm.js";
+import { getTmdbSynopsis } from "./tmdb.js";
 
 let movieSelected = JSON.parse(sessionStorage.getItem("moviesClick")) || [];
 if (movieSelected.length > 0) {
@@ -10,7 +11,7 @@ async function displayFilmDetails(movieSelected) {
   const titleDiv = document.getElementById("titleFilm");
   const genreDiv = document.getElementById("genreFilm");
   const directorDiv = document.getElementById("director");
-  const descriptionDiv = document.getElementById("descriptionFilm");
+  const synopsisDiv = document.getElementById("synopsisFilm");
   const yearDiv = document.getElementById("yearFilm");
   const summaryFilm = document.getElementById("summaryFilm");
 
@@ -30,10 +31,33 @@ async function displayFilmDetails(movieSelected) {
     genreDiv.innerHTML = htmlGenre;
   }
 
-  if (movieSelected.description) {
-    descriptionDiv.innerHTML = `
-      <div class="panel-title"><p><strong>Description</strong></p></div>
-      <p style="color: #ccc; line-height: 1.6;">${movieSelected.description}</p>
+  const renderSynopsis = (text) => {
+    synopsisDiv.innerHTML = `
+      <p style="color: #ccc; line-height: 1.6; margin-top: 15px; font-size: 14px;">${text}</p>
+    `;
+  };
+
+  if (movieSelected.tmdbSynopsis) {
+    renderSynopsis(movieSelected.tmdbSynopsis);
+  } else if (movieSelected.description) {
+    renderSynopsis(movieSelected.description);
+  } else {
+    synopsisDiv.innerHTML = `
+      <p style="color: #999; line-height: 1.6; margin-top: 15px; font-size: 14px;"><em>Chargement du synopsis...</em></p>
+    `;
+  }
+
+  const synopsisText = movieSelected.tmdbSynopsis || await getTmdbSynopsis(movieSelected.title, movieSelected.year);
+
+  if (synopsisText) {
+    movieSelected.tmdbSynopsis = synopsisText;
+    sessionStorage.setItem("moviesClick", JSON.stringify(movieSelected));
+    renderSynopsis(synopsisText);
+  } else if (movieSelected.description) {
+    renderSynopsis(movieSelected.description);
+  } else {
+    synopsisDiv.innerHTML = `
+      <p style="color: #999; line-height: 1.6; margin-top: 15px; font-size: 14px;">Aucun synopsis disponible.</p>
     `;
   }
 

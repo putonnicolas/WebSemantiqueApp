@@ -37,15 +37,15 @@ Mets l'accent sur :
 - Les thématiques communes
 - Le style ou l'ambiance similaire
 - Ce que l'utilisateur pourrait apprécier spécifiquement
+- N'hésite pas à te baser sur le(s) synopsis pour trouver des similarités de thèmes ou d'intrigues, ou donner envie de découvrir le film.
 
-Généralement, un excellent score recommandation est aux alentours de 30 points.
+Généralement, un excellent score recommandation est aux alentours de 150 points ou +.
 On utilise la grille de notation suivante :
-- Genre en commun : +10
-- Réalisateur en commun : +5
-- Acteur : +3
-- +- 5 ans de différence : +1
-- Pays: +2
-- Scénariste : +5.
+    GENRE: 10,
+    DIRECTOR: 10,
+    SCREENWRITER: 10,
+    CAST: 15,
+    MAIN_SUBJECT: 12,
 
 Ne mentionne pas le calcul du score dans ton explication, mais prends le score total en compte pour justifier la recommandation.
 Si le score est bas, c'est que le film recommandé a peu de points communs avec les films aimés par l'utilisateur.

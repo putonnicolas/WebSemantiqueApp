@@ -67,6 +67,38 @@ export async function getTmdbMovieDetails(tmdbId) {
 }
 
 /**
+ * Get a localized synopsis (overview) from TMDB search results
+ * @param {string} title - Movie title
+ * @param {number|null} year - Movie release year
+ * @returns {Promise<string|null>} - Synopsis text or null if not found
+ */
+export async function getTmdbSynopsis(title, year = null) {
+  try {
+    let query = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&language=fr-FR&query=${encodeURIComponent(title)}`;
+    if (year) {
+      query += `&year=${year}`;
+    }
+
+    const response = await fetch(query);
+    if (!response.ok) {
+      console.error(`TMDB API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const movie = data?.results?.[0];
+    if (movie && movie.overview) {
+      return movie.overview;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error fetching TMDB synopsis:", error);
+    return null;
+  }
+}
+
+/**
  * Get or create poster with fallback strategy
  * @param {string} title - Movie title
  * @param {number} year - Movie release year
