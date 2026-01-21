@@ -27,11 +27,12 @@ async function displayFilmDetails(movieSelected) {
   directorDiv.innerHTML = `<p><strong>Réalisateur :</strong> ${movieSelected.directorName}</p>`;
 
   if (movieSelected.genresLabels && movieSelected.genresLabels.length > 0) {
-    let htmlGenre = "<p><strong>Genres :</strong>";
+    let htmlGenre = "<div style='display: flex; align-items: center; gap: 8px; flex-wrap: wrap;'><strong>Genres :</strong>";
     movieSelected.genresLabels.slice(0, 5).forEach((e) => {
-      htmlGenre += `<div class='genre-bubble'>${e}</div>`;
+      const capitalized = e.charAt(0).toUpperCase() + e.slice(1);
+      htmlGenre += `<span class='genre-bubble'>${capitalized}</span>`;
     });
-    htmlGenre += "</p>";
+    htmlGenre += "</div>";
     genreDiv.innerHTML = htmlGenre;
   }
 
@@ -67,7 +68,7 @@ async function displayFilmDetails(movieSelected) {
     `;
   }
 
-  yearDiv.innerHTML = `<p>${movieSelected.year || ""}</p>`;
+  yearDiv.innerHTML = `<p><strong>Année :</strong> ${movieSelected.year || ""}</p>`;
 
   if (movieSelected.isRecommended) {
     summaryFilm.innerHTML += `
