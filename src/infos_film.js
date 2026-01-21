@@ -5,6 +5,7 @@ import { updateSavedListUI } from "./main.js";
 document.addEventListener("DOMContentLoaded", () => {
   updateSavedListUI();
 });
+
 let movieSelected = JSON.parse(sessionStorage.getItem("moviesClick")) || [];
 if (movieSelected.length > 0) {
   sessionStorage.setItem("moviesClick", JSON.stringify(movieSelected));
@@ -17,34 +18,52 @@ async function displayFilmDetails(movieSelected) {
   const directorDiv = document.getElementById("director");
   const synopsisDiv = document.getElementById("synopsisFilm");
   const yearDiv = document.getElementById("yearFilm");
-  const summaryFilm = document.getElementById("summaryFilm");
   const heroDiv = document.getElementById("hero");
 
   if (imageDiv && movieSelected.image) {
-    imageDiv.innerHTML = `<img src="${movieSelected.image}" alt="${movieSelected.title}"/>`;
+    // Sécurisation image
+    imageDiv.innerHTML = "";
+    imageDiv.insertAdjacentHTML(
+      "beforeend",
+      `<img src="${movieSelected.image}" alt="${movieSelected.title}"/>`,
+    );
   }
 
   if (heroDiv && movieSelected.image) {
     heroDiv.style.backgroundImage = `url('${movieSelected.image}')`;
   }
 
-  titleDiv.innerHTML = `<p>${movieSelected.title}</p>`;
-  directorDiv.innerHTML = `<p><strong>Réalisateur :</strong> ${movieSelected.directorName}</p>`;
+  // Sécurisation titre (textContent est plus sûr pour du texte pur)
+  titleDiv.textContent = movieSelected.title;
+
+  // Sécurisation réalisateur
+  directorDiv.innerHTML = "";
+  directorDiv.insertAdjacentHTML(
+    "beforeend",
+    `<p><strong>Réalisateur :</strong> ${movieSelected.directorName}</p>`,
+  );
 
   if (movieSelected.genresLabels && movieSelected.genresLabels.length > 0) {
-    let htmlGenre = "<div style='display: flex; align-items: center; gap: 8px; flex-wrap: wrap;'><strong>Genres :</strong>";
+    let htmlGenre =
+      "<div style='display: flex; align-items: center; gap: 8px; flex-wrap: wrap;'><strong>Genres :</strong>";
     movieSelected.genresLabels.slice(0, 5).forEach((e) => {
       const capitalized = e.charAt(0).toUpperCase() + e.slice(1);
       htmlGenre += `<span class='genre-bubble'>${capitalized}</span>`;
     });
     htmlGenre += "</div>";
-    genreDiv.innerHTML = htmlGenre;
+
+    // Sécurisation genre
+    genreDiv.innerHTML = "";
+    genreDiv.insertAdjacentHTML("beforeend", htmlGenre);
   }
 
   const renderSynopsis = (text) => {
-    synopsisDiv.innerHTML = `
-      <p style="color: #ccc; line-height: 1.6; margin-top: 15px; font-size: 14px;">${text}</p>
-    `;
+    // Sécurisation synopsis
+    synopsisDiv.innerHTML = "";
+    synopsisDiv.insertAdjacentHTML(
+      "beforeend",
+      `<p style="color: #ccc; line-height: 1.6; margin-top: 15px; font-size: 14px;">${text}</p>`,
+    );
   };
 
   if (movieSelected.tmdbSynopsis) {
@@ -52,9 +71,12 @@ async function displayFilmDetails(movieSelected) {
   } else if (movieSelected.description) {
     renderSynopsis(movieSelected.description);
   } else {
-    synopsisDiv.innerHTML = `
-      <p style="color: #999; line-height: 1.6; margin-top: 15px; font-size: 14px;"><em>Chargement du synopsis...</em></p>
-    `;
+    // Sécurisation état chargement
+    synopsisDiv.innerHTML = "";
+    synopsisDiv.insertAdjacentHTML(
+      "beforeend",
+      `<p style="color: #999; line-height: 1.6; margin-top: 15px; font-size: 14px;"><em>Chargement du synopsis...</em></p>`,
+    );
   }
 
   const synopsisText =
@@ -68,24 +90,44 @@ async function displayFilmDetails(movieSelected) {
   } else if (movieSelected.description) {
     renderSynopsis(movieSelected.description);
   } else {
-    synopsisDiv.innerHTML = `
-      <p style="color: #999; line-height: 1.6; margin-top: 15px; font-size: 14px;">Aucun synopsis disponible.</p>
-    `;
+    // Sécurisation état vide
+    synopsisDiv.innerHTML = "";
+    synopsisDiv.insertAdjacentHTML(
+      "beforeend",
+      `<p style="color: #999; line-height: 1.6; margin-top: 15px; font-size: 14px;">Aucun synopsis disponible.</p>`,
+    );
   }
 
-  yearDiv.innerHTML = `<p><strong>Année :</strong> ${movieSelected.year || ""}</p>`;
+  yearDiv.innerHTML = "";
+  yearDiv.insertAdjacentHTML(
+    "beforeend",
+    `<p><strong>Année :</strong> ${movieSelected.year || ""}</p>`,
+  );
 
   if (movieSelected.isRecommended) {
-    summaryFilm.innerHTML += `
+    let container = document.getElementById("container");
+    container.insertAdjacentHTML(
+      "beforeend",
+      `
+          <div id="summaryFilm">
+          </div>
+      `,
+    );
+
+    const summaryFilm = document.getElementById("summaryFilm");
+    generateRelationshipGraph(movieSelected);
+
+    summaryFilm.insertAdjacentHTML(
+      "beforeend",
+      `
       <div class='panelInfos' id="IASummary">
           <div id='IADiv'>
               <p><strong>Explication recommandation</strong></p>
               <img src="ia_sparks.svg" alt="IA" class="ia-icon"/>    
           </div>
           <p id="streamingText" style="color: #ccc; line-height: 1.6;"></p>
-      </div>`;
-
-    generateRelationshipGraph(movieSelected);
+      </div>`,
+    );
 
     const textContainer = document.getElementById("streamingText");
     if (movieSelected.cachedExplanation) {
@@ -94,7 +136,12 @@ async function displayFilmDetails(movieSelected) {
     }
 
     try {
-      textContainer.innerHTML = "<em>L'IA analyse votre profil...</em>";
+      textContainer.innerHTML = "";
+      textContainer.insertAdjacentHTML(
+        "beforeend",
+        "<em>L'IA analyse votre profil...</em>",
+      );
+
       let savedMovies = JSON.parse(sessionStorage.getItem("moviesUsed")) || [];
       const stream = await explainRecommendation({
         filmsUtilisateur: savedMovies,
@@ -121,6 +168,22 @@ async function displayFilmDetails(movieSelected) {
 }
 
 function generateRelationshipGraph(movieSelected) {
+  const summaryFilm = document.getElementById("summaryFilm");
+  let html = `<div class="panelInfos" id="graph">
+      <div class="panel-title"><p><strong>Relations entre les films</strong></p></div>
+      <div id="cy-loader"><div class="spinner"></div></div>
+      <div id="cy-graph"></div>
+      <div id="cy-legend">
+        <div class="legend-item"><span class="dot main"></span> Recommandé</div>
+        <div class="legend-item"><span class="dot past"></span> Vu par vous</div>
+        <div class="legend-item"><span class="dot genre"></span> Genre</div>
+        <div class="legend-item"><span class="dot director"></span> Réalisateur</div>
+        <div class="legend-item"><span class="dot actor"></span> Acteur</div>
+      </div>
+    </div>`;
+
+  summaryFilm.insertAdjacentHTML("beforeend", html);
+
   const container = document.getElementById("cy-graph");
   const loader = document.getElementById("cy-loader");
   if (!container) return;
@@ -162,11 +225,13 @@ function generateRelationshipGraph(movieSelected) {
   const actorIds = movieSelected.actorsIds || [];
   const actorNames = movieSelected.actorsNames || [];
   const createdActorIds = new Set();
-  
+
   actorIds.slice(0, 5).forEach((actorId, index) => {
-    if (!elements.find(el => el.data.id === actorId)) {
+    if (!elements.find((el) => el.data.id === actorId)) {
       const actorName = actorNames[index] || "Acteur";
-      elements.push({ data: { id: actorId, label: actorName, type: "actor" } });
+      elements.push({
+        data: { id: actorId, label: actorName, type: "actor" },
+      });
       createdActorIds.add(actorId);
     }
     elements.push({ data: { source: movieSelected.id, target: actorId } });
@@ -188,14 +253,19 @@ function generateRelationshipGraph(movieSelected) {
   commonActorsToAdd.forEach((actorId) => {
     const index = actorIds.indexOf(actorId);
     const actorName = index >= 0 ? actorNames[index] : "Acteur";
-    elements.push({ data: { id: actorId, label: actorName, type: "actor" } });
+    elements.push({
+      data: { id: actorId, label: actorName, type: "actor" },
+    });
     elements.push({ data: { source: movieSelected.id, target: actorId } });
     createdActorIds.add(actorId);
   });
 
   // Étape 4 : Créer les films passés et leurs connexions
   savedMovies.forEach((pastMovie) => {
-    const commonGenres = pastMovie.genresLabels?.filter((g) => movieSelected.genresLabels?.includes(g)) || [];
+    const commonGenres =
+      pastMovie.genresLabels?.filter((g) =>
+        movieSelected.genresLabels?.includes(g),
+      ) || [];
 
     const pastActorIds = pastMovie.actorsIds || pastMovie.cast || [];
     const commonActors = pastActorIds.filter((id) => createdActorIds.has(id));
@@ -211,9 +281,16 @@ function generateRelationshipGraph(movieSelected) {
         },
       });
 
-      if (sameDirector) elements.push({ data: { source: pastMovie.id, target: movieSelected.directorId } });
-      commonGenres.forEach((genre) => elements.push({ data: { source: pastMovie.id, target: `genre-${genre}` } }));
-      
+      if (sameDirector)
+        elements.push({
+          data: { source: pastMovie.id, target: movieSelected.directorId },
+        });
+      commonGenres.forEach((genre) =>
+        elements.push({
+          data: { source: pastMovie.id, target: `genre-${genre}` },
+        }),
+      );
+
       // Relier les films passés aux acteurs communs
       commonActors.forEach((actorId) => {
         elements.push({ data: { source: pastMovie.id, target: actorId } });
@@ -241,13 +318,44 @@ function generateRelationshipGraph(movieSelected) {
           "border-color": "#555",
         },
       },
-      { selector: "node[image]", style: { "background-image": "data(image)" } },
-      { selector: 'node[type="main-movie"]', style: { width: "65px", height: "65px", "border-color": "#e74c3c", "border-width": 4 } },
-      { selector: 'node[type="past-movie"]', style: { "border-color": "#3498db", "border-width": 3 } },
-      { selector: 'node[type="genre"]', style: { "background-color": "#2ecc71", shape: "diamond" } },
-      { selector: 'node[type="director"]', style: { "background-color": "#f1c40f", shape: "rectangle" } },
-      { selector: 'node[type="actor"]', style: { "background-color": "#e67e22", shape: "ellipse" } },
-      { selector: "edge", style: { width: 2, "line-color": "#666", "curve-style": "bezier", opacity: 0.5 } }
+      {
+        selector: "node[image]",
+        style: { "background-image": "data(image)" },
+      },
+      {
+        selector: 'node[type="main-movie"]',
+        style: {
+          width: "65px",
+          height: "65px",
+          "border-color": "#e74c3c",
+          "border-width": 4,
+        },
+      },
+      {
+        selector: 'node[type="past-movie"]',
+        style: { "border-color": "#3498db", "border-width": 3 },
+      },
+      {
+        selector: 'node[type="genre"]',
+        style: { "background-color": "#2ecc71", shape: "diamond" },
+      },
+      {
+        selector: 'node[type="director"]',
+        style: { "background-color": "#f1c40f", shape: "rectangle" },
+      },
+      {
+        selector: 'node[type="actor"]',
+        style: { "background-color": "#e67e22", shape: "ellipse" },
+      },
+      {
+        selector: "edge",
+        style: {
+          width: 2,
+          "line-color": "#666",
+          "curve-style": "bezier",
+          opacity: 0.5,
+        },
+      },
     ],
     layout: { name: "cose", padding: 50, animate: true },
   });

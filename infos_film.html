@@ -33,8 +33,20 @@
       </div>
 
       <div id="hero">
+        <div class="search">
+          <div class="searchBar">
+            <input
+              type="text"
+              placeholder="Rechercher un film"
+              id="movieSearch"
+            />
+            <button id="searchBtn">
+              <img src="loupe.svg" alt="Rechercher" />
+            </button>
+          </div>
+        </div>
 
-        <div class="container">
+        <div class="container" id="container">
           <div class="moviesInfos">
             <div class="image_placeholder" id="imageFilm"></div>
             <div class="text_placeholder">
@@ -47,23 +59,6 @@
               <div id="synopsisFilm"></div>
             </div>
           </div>
-
-          <div id="summaryFilm">
-            <div class="leftPanelInfos">
-              <div class="panelInfos" id="graph">
-                <div class="panel-title"><p><strong>Relations entre les films</strong></p></div>
-                <div id="cy-loader"><div class="spinner"></div></div>
-                <div id="cy-graph"></div>
-                <div id="cy-legend">
-                  <div class="legend-item"><span class="dot main"></span> Recommandé</div>
-                  <div class="legend-item"><span class="dot past"></span> Vu par vous</div>
-                  <div class="legend-item"><span class="dot genre"></span> Genre</div>
-                  <div class="legend-item"><span class="dot director"></span> Réalisateur</div>
-                  <div class="legend-item"><span class="dot actor"></span> Acteur</div>
-                </div>
-              </div>
-            </div>
-            </div>
         </div>
       </div>
     </div>
