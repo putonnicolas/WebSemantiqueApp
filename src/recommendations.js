@@ -480,6 +480,15 @@ async function afficherFilms(finalResults) {
   resultsDiv.innerHTML = html;
 }
 
+function supprimerFilm(index) {
+  console.log("[reco] supprimerFilm invoked for index", index);
+  savedMovies.splice(index, 1);
+  sessionStorage.setItem("moviesUsed", JSON.stringify(savedMovies));
+  updateSavedListUI();
+  getOptimizedRecommendations();
+}
+window.supprimerFilm = supprimerFilm;
+
 function updateSavedListUI() {
   const placeholders = document.querySelectorAll(".movie-placeholder");
 
@@ -504,6 +513,7 @@ function updateSavedListUI() {
     }
   });
 }
+
 
 // Initialisation
 document.addEventListener("DOMContentLoaded", () => {
