@@ -197,3 +197,5 @@ window.ouvrirDetails = function(index) {
     
     window.location.href = 'infos_film.html'
 }
+
+export { updateSavedListUI };
