@@ -1,5 +1,5 @@
 import { SparqlClient } from "./SparqlClient.js";
-import { getPosterWithFallback } from "./tmdb.js";
+import { getPosterWithFallback, getTmdbSynopsis } from "./tmdb.js";
 
 const WEIGHTS = {
   GENRE: 10,
@@ -126,6 +126,9 @@ async function getOptimizedRecommendations() {
 
   console.log("🎬 Multi-tier query approach: fetching candidates by tier...");
 
+  // Convert space-separated list to comma-separated for SPARQL NOT IN
+  const excListForFilter = excList ? excList.replace(/ /g, ", ") : "";
+
   // Helper function to build a candidate query
   const buildCandidateQuery = (matchClause, limit) => `
     SELECT DISTINCT ?movie WHERE {
@@ -134,7 +137,7 @@ async function getOptimizedRecommendations() {
              wdt:P577 ?date.
       BIND(YEAR(?date) AS ?year)
       FILTER(?year >= ${minYear} && ?year <= ${maxYear})
-      FILTER NOT EXISTS { VALUES ?err { ${excList || "wd:Q0"} } FILTER(?movie = ?err) }
+      ${excListForFilter ? `FILTER (?movie NOT IN (${excListForFilter}))` : ""}
     }
     LIMIT ${limit}
   `;
@@ -368,13 +371,17 @@ ORDER BY DESC(?year)
       };
     });
 
-    // Fetch TMDB posters for all movies in parallel
+    // Fetch TMDB posters and synopses for all movies in parallel
     finalResults = await Promise.all(
       finalResults.map(async (movie) => {
-        const posterUrl = await getPosterWithFallback(movie.title, movie.year, movie.image);
+        const [posterUrl, synopsis] = await Promise.all([
+          getPosterWithFallback(movie.title, movie.year, movie.image),
+          getTmdbSynopsis(movie.title, movie.year)
+        ]);
         return {
           ...movie,
-          image: posterUrl
+          image: posterUrl,
+          tmdbSynopsis: synopsis || movie.description
         };
       })
     );

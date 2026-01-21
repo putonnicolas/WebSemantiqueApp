@@ -11,7 +11,8 @@ const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500";
  */
 export async function getTmdbPoster(title, year = null) {
   try {
-    let query = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}`;
+    // Force French metadata so we pick the localized title/poster variant when available
+    let query = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&language=fr-FR&query=${encodeURIComponent(title)}`;
     
     // Add year filter if provided
     if (year) {
@@ -50,7 +51,7 @@ export async function getTmdbPoster(title, year = null) {
 export async function getTmdbMovieDetails(tmdbId) {
   try {
     const response = await fetch(
-      `${TMDB_BASE_URL}/movie/${tmdbId}?api_key=${TMDB_API_KEY}`
+      `${TMDB_BASE_URL}/movie/${tmdbId}?api_key=${TMDB_API_KEY}&language=fr-FR`
     );
 
     if (!response.ok) {
@@ -61,6 +62,38 @@ export async function getTmdbMovieDetails(tmdbId) {
     return await response.json();
   } catch (error) {
     console.error("Error fetching TMDB movie details:", error);
+    return null;
+  }
+}
+
+/**
+ * Get a localized synopsis (overview) from TMDB search results
+ * @param {string} title - Movie title
+ * @param {number|null} year - Movie release year
+ * @returns {Promise<string|null>} - Synopsis text or null if not found
+ */
+export async function getTmdbSynopsis(title, year = null) {
+  try {
+    let query = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&language=fr-FR&query=${encodeURIComponent(title)}`;
+    if (year) {
+      query += `&year=${year}`;
+    }
+
+    const response = await fetch(query);
+    if (!response.ok) {
+      console.error(`TMDB API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const movie = data?.results?.[0];
+    if (movie && movie.overview) {
+      return movie.overview;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error fetching TMDB synopsis:", error);
     return null;
   }
 }

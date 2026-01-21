@@ -1,5 +1,6 @@
 import "../style.css";
 import { searchMoviesOnWikidata, getMovieFullDetails } from "./searchFilms.js";
+import { getTmdbSynopsis } from "./tmdb.js";
 
 let currentSearchResults = [];
 let savedMovies = JSON.parse(sessionStorage.getItem("moviesUsed")) || [];
@@ -113,6 +114,13 @@ window.ajouterAuxMoviesUsed = async function (index) {
     if (movieFull) {
       // Keep the poster from the basic search result
       movieFull.image = movieBasic.image;
+      
+      // Fetch TMDB synopsis for LLM context
+      const synopsis = await getTmdbSynopsis(movieFull.title, movieFull.year);
+      if (synopsis) {
+        movieFull.tmdbSynopsis = synopsis;
+      }
+      
       savedMovies.push(movieFull);
     } else {
       // Fallback: use basic data if full details fail
